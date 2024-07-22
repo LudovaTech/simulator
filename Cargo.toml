@@ -1,0 +1,9 @@
+[package]
+name = "gui-tests-for-simulation"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = { version = "0.25", features = ["glow"] }
+egui = "0.25"
+winapi = { version = "0.3", features = ["winuser", "windef"] }
