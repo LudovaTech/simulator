@@ -1,4 +1,4 @@
-use crate::objects::{CircularDraw, Robot};
+use crate::objects::{Ball, CircularDraw, Robot};
 
 use crate::infos;
 use crate::vector2::vector2;
@@ -10,6 +10,7 @@ struct SimulatorApp {
     robot_a2: Robot,
     robot_b1: Robot,
     robot_b2: Robot,
+    ball: Ball,
     scale: f32,
 }
 
@@ -19,10 +20,8 @@ impl Default for SimulatorApp {
             robot_a1: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 255, 0)),
             robot_a2: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(0, 255, 255)),
             robot_b1: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 0, 255)),
-            robot_b2: Robot::new(
-                vector2(50.0, 50.0),
-                egui::Color32::from_rgb(255, 255, 255),
-            ),
+            robot_b2: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 255, 255)),
+            ball: Ball::new(vector2(100.0, 100.0), egui::Color32::from_rgb(255, 165, 0)),
             scale: 1.0,
         }
     }
@@ -63,13 +62,15 @@ impl eframe::App for SimulatorApp {
 
                     self.draw_field(&painter, painter_rect.min.to_vec2());
 
-                    for obj in [
+                    let circular_obj: [&dyn CircularDraw; 5] = [
                         &self.robot_a1,
                         &self.robot_a2,
                         &self.robot_b1,
                         &self.robot_b2,
-                    ]
-                    .into_iter()
+                        &self.ball,
+                    ];
+
+                    for obj in circular_obj.into_iter()
                     {
                         self.draw_circular_obj(&painter, obj, painter_rect.min.to_vec2())
                     }
@@ -164,7 +165,7 @@ impl SimulatorApp {
         );
 
         let goal_size = egui::vec2(
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) - stroke.width/2.0,
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) - stroke.width / 2.0,
             (infos::GOAL_WIDTH as f32) * self.scale,
         );
 
@@ -197,7 +198,12 @@ impl SimulatorApp {
         );
     }
 
-    fn draw_circular_obj(&self, painter: &egui::Painter, obj: &dyn CircularDraw, offset: egui::Vec2) {
+    fn draw_circular_obj(
+        &self,
+        painter: &egui::Painter,
+        obj: &dyn CircularDraw,
+        offset: egui::Vec2,
+    ) {
         painter.circle_filled(
             (obj.position() * self.scale) + offset,
             obj.radius() * self.scale,

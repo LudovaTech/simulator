@@ -17,6 +17,8 @@ pub trait CircularDraw: PointDraw {
     fn radius(&self) -> f32;
 }
 
+////////////  ROBOT
+
 pub struct Robot {
     pub pos: Vector2,
     pub color: egui::Color32,
@@ -52,6 +54,8 @@ impl CircularDraw for Robot {
         infos::ROBOT_RADIUS as f32
     }
 }
+
+////////////  BALL
 
 pub struct Ball {
     pub pos: Vector2,
