@@ -1,8 +1,7 @@
-use robot::Robot;
+use crate::objects::{CircularDraw, Robot};
 
 use crate::infos;
-
-mod robot;
+use crate::vector2::vector2;
 
 const BUTTON_PANEL_WIDTH: f32 = 150.0;
 
@@ -17,11 +16,11 @@ struct SimulatorApp {
 impl Default for SimulatorApp {
     fn default() -> Self {
         Self {
-            robot_a1: Robot::new(egui::pos2(50.0, 50.0), egui::Color32::from_rgb(255, 255, 0)),
-            robot_a2: Robot::new(egui::pos2(50.0, 50.0), egui::Color32::from_rgb(0, 255, 255)),
-            robot_b1: Robot::new(egui::pos2(50.0, 50.0), egui::Color32::from_rgb(255, 0, 255)),
+            robot_a1: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 255, 0)),
+            robot_a2: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(0, 255, 255)),
+            robot_b1: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 0, 255)),
             robot_b2: Robot::new(
-                egui::pos2(50.0, 50.0),
+                vector2(50.0, 50.0),
                 egui::Color32::from_rgb(255, 255, 255),
             ),
             scale: 1.0,
@@ -64,7 +63,7 @@ impl eframe::App for SimulatorApp {
 
                     self.draw_field(&painter, painter_rect.min.to_vec2());
 
-                    for robot in [
+                    for obj in [
                         &self.robot_a1,
                         &self.robot_a2,
                         &self.robot_b1,
@@ -72,7 +71,7 @@ impl eframe::App for SimulatorApp {
                     ]
                     .into_iter()
                     {
-                        self.draw_robot(&painter, robot, painter_rect.min.to_vec2())
+                        self.draw_circular_obj(&painter, obj, painter_rect.min.to_vec2())
                     }
                 });
             });
@@ -198,59 +197,13 @@ impl SimulatorApp {
         );
     }
 
-    fn draw_robot(&self, painter: &egui::Painter, robot: &Robot, offset: egui::Vec2) {
+    fn draw_circular_obj(&self, painter: &egui::Painter, obj: &dyn CircularDraw, offset: egui::Vec2) {
         painter.circle_filled(
-            (robot.pos * self.scale) + offset,
-            (infos::ROBOT_RADIUS as f32) * self.scale,
-            robot.color,
+            (obj.position() * self.scale) + offset,
+            obj.radius() * self.scale,
+            obj.color(),
         );
     }
-
-    fn draw_goal(
-        &self,
-        painter: &egui::Painter,
-        rect: egui::Rect,
-        rounding: egui::Rounding,
-        offset: egui::Vec2,
-    ) {
-        // let cpos = pos + offset;
-        let stroke = egui::Stroke::new(2.0 * self.scale, egui::Color32::WHITE);
-        // let h_width = (cpos.x + radius) * self.scale..=(cpos.x + width) * self.scale;
-        // painter.hline(&h_width, cpos.y * self.scale, stroke);
-        // painter.hline(&h_width, (cpos.y + height) * self.scale, stroke);
-        // painter.vline(
-        //     cpos.x * self.scale,
-        //     (cpos.y + radius) * self.scale..=(cpos.y + height - radius) * self.scale,
-        //     stroke,
-        // );
-        // painter.
-        let crect = rect.translate(offset) * self.scale;
-        let half_rect = egui::Rect {
-            min: crect.min,
-            max: egui::Pos2::new(crect.max.x, (crect.min.y + crect.max.y) / 2.0),
-        };
-
-        let shape = egui::Shape::rect_stroke(half_rect, rounding, stroke);
-        painter.add(shape);
-    }
-}
-
-fn egui_pos_to_our_pos(egui_pos: egui::Pos2) -> egui::Pos2 {
-    (egui_pos
-        - egui::pos2(
-            (infos::FIELD_DEPTH as f32) / 2.0,
-            (infos::FIELD_WIDTH as f32) / 2.0,
-        ))
-    .to_pos2()
-}
-
-fn our_pos_to_egui_pos(our_pos: egui::Pos2) -> egui::Pos2 {
-    our_pos
-        + egui::pos2(
-            (infos::FIELD_DEPTH as f32) / 2.0,
-            (infos::FIELD_WIDTH as f32) / 2.0,
-        )
-        .to_vec2()
 }
 
 pub fn start() -> Result<(), eframe::Error> {

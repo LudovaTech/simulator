@@ -7,3 +7,4 @@ edition = "2021"
 eframe = { version = "0.25", features = ["glow"] }
 egui = "0.25"
 winapi = { version = "0.3", features = ["winuser", "windef"] }
+vector2d = "2.2.0"
