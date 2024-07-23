@@ -4,6 +4,8 @@ use crate::infos;
 
 mod robot;
 
+const BUTTON_PANEL_WIDTH: f32 = 150.0;
+
 struct SimulatorApp {
     robot_a1: Robot,
     robot_a2: Robot,
@@ -30,71 +32,97 @@ impl Default for SimulatorApp {
 impl eframe::App for SimulatorApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.draw_field(ui);
-            for robot in [
-                &self.robot_a1,
-                &self.robot_a2,
-                &self.robot_b1,
-                &self.robot_b2,
-            ]
-            .into_iter()
-            {
-                self.draw_robot(ui, robot)
-            }
-
-            // Ajouter des boutons
+            let window_size = ui.max_rect();
             ui.horizontal(|ui| {
-                if ui.button("Move Robot A1 Right").clicked() {
-                    self.robot_a1.pos.x += 10.0;
-                }
-                if ui.button("Move Robot 2 Left").clicked() {
-                    self.robot_b1.pos.x -= 10.0;
-                }
+                ui.set_height(window_size.height());
+                //buttons panel
+                ui.vertical(|ui| {
+                    ui.set_width(BUTTON_PANEL_WIDTH);
+                    if ui.button("Move Robot A1 Right").clicked() {
+                        self.robot_a1.pos.x += 10.0;
+                    }
+                    if ui.button("Move Robot 2 Left").clicked() {
+                        self.robot_b1.pos.x -= 10.0;
+                    }
+                });
+
+                // Paint zone
+                ui.vertical(|ui| {
+                    let available_size = ui.available_size();
+                    let painter_rect = egui::Rect::from_min_size(
+                        ui.min_rect().min,
+                        egui::vec2(available_size.x, available_size.y),
+                    );
+
+                    let painter = ui.painter_at(painter_rect);
+
+                    self.scale = (painter_rect.width()/(infos::FIELD_DEPTH as f32)).min(painter_rect.height()/(infos::FIELD_WIDTH as f32));
+
+                    // montre la zone du painter
+                    // painter.rect_filled(painter_rect, 0.0, egui::Color32::BLUE);
+
+                    self.draw_field(&painter, painter_rect.min.to_vec2());
+
+                    for robot in [
+                        &self.robot_a1,
+                        &self.robot_a2,
+                        &self.robot_b1,
+                        &self.robot_b2,
+                    ]
+                    .into_iter()
+                    {
+                        self.draw_robot(&painter, robot, painter_rect.min.to_vec2())
+                    }
+                });
             });
-            ui.add(egui::Slider::new(&mut self.scale, 0.0..=5.0).text("Scale"));
         });
     }
 }
 
 impl SimulatorApp {
-    fn draw_field(&self, ui: &mut egui::Ui) {
-        ui.painter().rect_filled(
+    fn draw_field(&self, painter: &egui::Painter, offset: egui::Vec2) {
+        painter.rect_filled(
             egui::Rect::from_min_size(
-                egui::pos2(0.0, 0.0) * self.scale,
+                (egui::pos2(0.0, 0.0) * self.scale) + offset,
                 egui::vec2(infos::FIELD_DEPTH as f32, infos::FIELD_WIDTH as f32) * self.scale,
             ),
             0.0,
             egui::Color32::from_rgb(0, 128, 0),
         );
-        ui.painter().hline(
-            (infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale
-                ..=((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale,
-            (infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale,
+        painter.hline(
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.x
+                ..=(((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale)
+                    + offset.x,
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.y,
             egui::Stroke::new(2.0 * self.scale, egui::Color32::WHITE),
         );
-        ui.painter().hline(
-            (infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale
-                ..=((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale,
-            ((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale,
+        painter.hline(
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.x
+                ..=(((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale)
+                    + offset.x,
+            (((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale) + offset.y,
             egui::Stroke::new(2.0 * self.scale, egui::Color32::WHITE),
         );
-        ui.painter().vline(
-            (infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale,
-            (infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale
-                ..=((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale,
+        painter.vline(
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.x,
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.y
+                ..=(((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale)
+                    + offset.y,
             egui::Stroke::new(2.0 * self.scale, egui::Color32::WHITE),
         );
-        ui.painter().vline(
-            ((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale,
-            (infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale
-                ..=((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale,
+        painter.vline(
+            (((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale) + offset.x,
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.y
+                ..=(((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale)
+                    + offset.y,
             egui::Stroke::new(2.0 * self.scale, egui::Color32::WHITE),
         );
+        
     }
 
-    fn draw_robot(&self, ui: &mut egui::Ui, robot: &Robot) {
-        ui.painter().circle_filled(
-            robot.pos * self.scale,
+    fn draw_robot(&self, painter: &egui::Painter, robot: &Robot, offset: egui::Vec2) {
+        painter.circle_filled(
+            (robot.pos * self.scale) + offset,
             (infos::ROBOT_RADIUS as f32) * self.scale,
             robot.color,
         );
