@@ -119,6 +119,83 @@ impl SimulatorApp {
                     + offset.y,
             stroke,
         );
+
+        let radius: f32 = (infos::ENBUT_RADIUS as f32) * self.scale;
+
+        // left enbut
+        painter.rect_stroke(
+            egui::Rect::from_min_size(
+                egui::pos2(
+                    offset.x + ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale),
+                    offset.y
+                        + ((((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) as f32) / 2.0) * self.scale),
+                ),
+                egui::vec2(infos::ENBUT_DEPTH as f32, infos::ENBUT_WIDTH as f32) * self.scale,
+            ),
+            egui::Rounding {
+                nw: 0.0,
+                ne: radius,
+                sw: 0.0,
+                se: radius,
+            },
+            stroke,
+        );
+
+        // right enbut
+        painter.rect_stroke(
+            egui::Rect::from_min_size(
+                egui::pos2(
+                    offset.x
+                        + (((infos::FIELD_DEPTH
+                            - infos::ENBUT_DEPTH
+                            - infos::SPACE_BEFORE_LINE_SIDE) as f32)
+                            * self.scale),
+                    offset.y
+                        + ((((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) as f32) / 2.0) * self.scale),
+                ),
+                egui::vec2(infos::ENBUT_DEPTH as f32, infos::ENBUT_WIDTH as f32) * self.scale,
+            ),
+            egui::Rounding {
+                nw: radius,
+                ne: 0.0,
+                sw: radius,
+                se: 0.0,
+            },
+            stroke,
+        );
+
+        let goal_size = egui::vec2(
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) - stroke.width/2.0,
+            (infos::GOAL_WIDTH as f32) * self.scale,
+        );
+
+        // yellow goal
+        painter.rect_filled(
+            egui::Rect::from_min_size(
+                egui::pos2(
+                    offset.x,
+                    offset.y
+                        + (((infos::FIELD_WIDTH - infos::GOAL_WIDTH) as f32) / 2.0) * self.scale,
+                ),
+                goal_size,
+            ),
+            0.0,
+            egui::Color32::YELLOW,
+        );
+
+        // blue goal
+        painter.rect_filled(
+            egui::Rect::from_min_size(
+                egui::pos2(
+                    offset.x + ((infos::FIELD_DEPTH as f32) * self.scale) - goal_size.x,
+                    offset.y
+                        + (((infos::FIELD_WIDTH - infos::GOAL_WIDTH) as f32) / 2.0) * self.scale,
+                ),
+                goal_size,
+            ),
+            0.0,
+            egui::Color32::BLUE,
+        );
     }
 
     fn draw_robot(&self, painter: &egui::Painter, robot: &Robot, offset: egui::Vec2) {
@@ -133,7 +210,7 @@ impl SimulatorApp {
         &self,
         painter: &egui::Painter,
         rect: egui::Rect,
-        radius: f32,
+        rounding: egui::Rounding,
         offset: egui::Vec2,
     ) {
         // let cpos = pos + offset;
@@ -147,22 +224,13 @@ impl SimulatorApp {
         //     stroke,
         // );
         // painter.
-        let crect = rect.translate(offset);
+        let crect = rect.translate(offset) * self.scale;
         let half_rect = egui::Rect {
             min: crect.min,
             max: egui::Pos2::new(crect.max.x, (crect.min.y + crect.max.y) / 2.0),
         };
 
-        let shape = egui::Shape::rect_stroke(
-            half_rect,
-            egui::Rounding {
-                nw: radius,
-                ne: radius,
-                sw: 0.0,
-                se: 0.0,
-            },
-            stroke,
-        );
+        let shape = egui::Shape::rect_stroke(half_rect, rounding, stroke);
         painter.add(shape);
     }
 }
