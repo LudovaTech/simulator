@@ -56,7 +56,8 @@ impl eframe::App for SimulatorApp {
 
                     let painter = ui.painter_at(painter_rect);
 
-                    self.scale = (painter_rect.width()/(infos::FIELD_DEPTH as f32)).min(painter_rect.height()/(infos::FIELD_WIDTH as f32));
+                    self.scale = (painter_rect.width() / (infos::FIELD_DEPTH as f32))
+                        .min(painter_rect.height() / (infos::FIELD_WIDTH as f32));
 
                     // montre la zone du painter
                     // painter.rect_filled(painter_rect, 0.0, egui::Color32::BLUE);
@@ -81,6 +82,7 @@ impl eframe::App for SimulatorApp {
 
 impl SimulatorApp {
     fn draw_field(&self, painter: &egui::Painter, offset: egui::Vec2) {
+        let stroke: egui::Stroke = egui::Stroke::new(2.0 * self.scale, egui::Color32::WHITE);
         painter.rect_filled(
             egui::Rect::from_min_size(
                 (egui::pos2(0.0, 0.0) * self.scale) + offset,
@@ -94,30 +96,29 @@ impl SimulatorApp {
                 ..=(((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale)
                     + offset.x,
             ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.y,
-            egui::Stroke::new(2.0 * self.scale, egui::Color32::WHITE),
+            stroke,
         );
         painter.hline(
             ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.x
                 ..=(((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale)
                     + offset.x,
             (((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale) + offset.y,
-            egui::Stroke::new(2.0 * self.scale, egui::Color32::WHITE),
+            stroke,
         );
         painter.vline(
             ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.x,
             ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.y
                 ..=(((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale)
                     + offset.y,
-            egui::Stroke::new(2.0 * self.scale, egui::Color32::WHITE),
+            stroke,
         );
         painter.vline(
             (((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale) + offset.x,
             ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.y
                 ..=(((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale)
                     + offset.y,
-            egui::Stroke::new(2.0 * self.scale, egui::Color32::WHITE),
+            stroke,
         );
-        
     }
 
     fn draw_robot(&self, painter: &egui::Painter, robot: &Robot, offset: egui::Vec2) {
@@ -126,6 +127,43 @@ impl SimulatorApp {
             (infos::ROBOT_RADIUS as f32) * self.scale,
             robot.color,
         );
+    }
+
+    fn draw_goal(
+        &self,
+        painter: &egui::Painter,
+        rect: egui::Rect,
+        radius: f32,
+        offset: egui::Vec2,
+    ) {
+        // let cpos = pos + offset;
+        let stroke = egui::Stroke::new(2.0 * self.scale, egui::Color32::WHITE);
+        // let h_width = (cpos.x + radius) * self.scale..=(cpos.x + width) * self.scale;
+        // painter.hline(&h_width, cpos.y * self.scale, stroke);
+        // painter.hline(&h_width, (cpos.y + height) * self.scale, stroke);
+        // painter.vline(
+        //     cpos.x * self.scale,
+        //     (cpos.y + radius) * self.scale..=(cpos.y + height - radius) * self.scale,
+        //     stroke,
+        // );
+        // painter.
+        let crect = rect.translate(offset);
+        let half_rect = egui::Rect {
+            min: crect.min,
+            max: egui::Pos2::new(crect.max.x, (crect.min.y + crect.max.y) / 2.0),
+        };
+
+        let shape = egui::Shape::rect_stroke(
+            half_rect,
+            egui::Rounding {
+                nw: radius,
+                ne: radius,
+                sw: 0.0,
+                se: 0.0,
+            },
+            stroke,
+        );
+        painter.add(shape);
     }
 }
 
