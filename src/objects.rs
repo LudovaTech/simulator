@@ -8,13 +8,21 @@ pub trait Movable {
     fn apply_velocity(&mut self);
 }
 
-pub trait PointDraw {
-    fn position(&self) -> egui::Pos2;
-    fn color(&self) -> egui::Color32;
+pub trait Drawable {
+    fn draw(&self, painter: &egui::Painter, offset: egui::Vec2, scale: f32);
 }
 
-pub trait CircularDraw: PointDraw {
-    fn radius(&self) -> f32;
+//////////// FUNCTIONS
+
+fn draw_circular_generic(
+    painter: &egui::Painter,
+    pos: egui::Pos2,
+    radius: f32,
+    color: egui::Color32,
+    offset: egui::Vec2,
+    scale: f32,
+) {
+    painter.circle_filled((pos * scale) + offset, radius * scale, color);
 }
 
 ////////////  ROBOT
@@ -40,18 +48,16 @@ impl Movable for Robot {
     }
 }
 
-impl PointDraw for Robot {
-    fn position(&self) -> egui::Pos2 {
-        self.pos.to_egui_pos2()
-    }
-    fn color(&self) -> egui::Color32 {
-        self.color
-    }
-}
-
-impl CircularDraw for Robot {
-    fn radius(&self) -> f32 {
-        infos::ROBOT_RADIUS as f32
+impl Drawable for Robot {
+    fn draw(&self, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
+        draw_circular_generic(
+            painter,
+            self.pos.to_egui_pos2(),
+            infos::ROBOT_RADIUS as f32,
+            self.color,
+            offset,
+            scale,
+        );
     }
 }
 
@@ -78,17 +84,15 @@ impl Movable for Ball {
     }
 }
 
-impl PointDraw for Ball {
-    fn position(&self) -> egui::Pos2 {
-        self.pos.to_egui_pos2()
-    }
-    fn color(&self) -> egui::Color32 {
-        self.color
-    }
-}
-
-impl CircularDraw for Ball {
-    fn radius(&self) -> f32 {
-        infos::BALL_RADIUS as f32
+impl Drawable for Ball {
+    fn draw(&self, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
+        draw_circular_generic(
+            painter,
+            self.pos.to_egui_pos2(),
+            infos::BALL_RADIUS as f32,
+            self.color,
+            offset,
+            scale,
+        )
     }
 }

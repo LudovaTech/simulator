@@ -1,4 +1,4 @@
-use crate::objects::{Ball, CircularDraw, Robot};
+use crate::objects::{Ball, Drawable, Robot};
 
 use crate::infos;
 use crate::vector2::vector2;
@@ -60,7 +60,7 @@ impl eframe::App for SimulatorApp {
 
                     self.draw_field(&painter, painter_rect.min.to_vec2(), scale);
 
-                    let circular_obj: [&dyn CircularDraw; 5] = [
+                    let circular_obj: [&dyn Drawable; 5] = [
                         &self.robot_a1,
                         &self.robot_a2,
                         &self.robot_b1,
@@ -68,9 +68,8 @@ impl eframe::App for SimulatorApp {
                         &self.ball,
                     ];
 
-                    for obj in circular_obj.into_iter()
-                    {
-                        self.draw_circular_obj(&painter, obj, painter_rect.min.to_vec2(), scale)
+                    for obj in circular_obj.into_iter() {
+                        obj.draw(&painter, painter_rect.min.to_vec2(), scale)
                     }
                 });
             });
@@ -79,7 +78,7 @@ impl eframe::App for SimulatorApp {
 }
 
 impl SimulatorApp {
-    fn draw_field(&self, painter: &egui::Painter, offset: egui::Vec2, scale:f32) {
+    fn draw_field(&self, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
         let stroke: egui::Stroke = egui::Stroke::new(2.0 * scale, egui::Color32::WHITE);
         painter.rect_filled(
             egui::Rect::from_min_size(
@@ -125,8 +124,7 @@ impl SimulatorApp {
             egui::Rect::from_min_size(
                 egui::pos2(
                     offset.x + ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale),
-                    offset.y
-                        + ((((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) as f32) / 2.0) * scale),
+                    offset.y + ((((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) as f32) / 2.0) * scale),
                 ),
                 egui::vec2(infos::ENBUT_DEPTH as f32, infos::ENBUT_WIDTH as f32) * scale,
             ),
@@ -148,8 +146,7 @@ impl SimulatorApp {
                             - infos::ENBUT_DEPTH
                             - infos::SPACE_BEFORE_LINE_SIDE) as f32)
                             * scale),
-                    offset.y
-                        + ((((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) as f32) / 2.0) * scale),
+                    offset.y + ((((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) as f32) / 2.0) * scale),
                 ),
                 egui::vec2(infos::ENBUT_DEPTH as f32, infos::ENBUT_WIDTH as f32) * scale,
             ),
@@ -172,8 +169,7 @@ impl SimulatorApp {
             egui::Rect::from_min_size(
                 egui::pos2(
                     offset.x,
-                    offset.y
-                        + (((infos::FIELD_WIDTH - infos::GOAL_WIDTH) as f32) / 2.0) * scale,
+                    offset.y + (((infos::FIELD_WIDTH - infos::GOAL_WIDTH) as f32) / 2.0) * scale,
                 ),
                 goal_size,
             ),
@@ -186,27 +182,12 @@ impl SimulatorApp {
             egui::Rect::from_min_size(
                 egui::pos2(
                     offset.x + ((infos::FIELD_DEPTH as f32) * scale) - goal_size.x,
-                    offset.y
-                        + (((infos::FIELD_WIDTH - infos::GOAL_WIDTH) as f32) / 2.0) * scale,
+                    offset.y + (((infos::FIELD_WIDTH - infos::GOAL_WIDTH) as f32) / 2.0) * scale,
                 ),
                 goal_size,
             ),
             0.0,
             egui::Color32::BLUE,
-        );
-    }
-
-    fn draw_circular_obj(
-        &self,
-        painter: &egui::Painter,
-        obj: &dyn CircularDraw,
-        offset: egui::Vec2,
-        scale: f32,
-    ) {
-        painter.circle_filled(
-            (obj.position() * scale) + offset,
-            obj.radius() * scale,
-            obj.color(),
         );
     }
 }
