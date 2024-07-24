@@ -11,7 +11,6 @@ struct SimulatorApp {
     robot_b1: Robot,
     robot_b2: Robot,
     ball: Ball,
-    scale: f32,
 }
 
 impl Default for SimulatorApp {
@@ -22,7 +21,6 @@ impl Default for SimulatorApp {
             robot_b1: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 0, 255)),
             robot_b2: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 255, 255)),
             ball: Ball::new(vector2(100.0, 100.0), egui::Color32::from_rgb(255, 165, 0)),
-            scale: 1.0,
         }
     }
 }
@@ -54,13 +52,13 @@ impl eframe::App for SimulatorApp {
 
                     let painter = ui.painter_at(painter_rect);
 
-                    self.scale = (painter_rect.width() / (infos::FIELD_DEPTH as f32))
+                    let scale: f32 = (painter_rect.width() / (infos::FIELD_DEPTH as f32))
                         .min(painter_rect.height() / (infos::FIELD_WIDTH as f32));
 
                     // montre la zone du painter
                     // painter.rect_filled(painter_rect, 0.0, egui::Color32::BLUE);
 
-                    self.draw_field(&painter, painter_rect.min.to_vec2());
+                    self.draw_field(&painter, painter_rect.min.to_vec2(), scale);
 
                     let circular_obj: [&dyn CircularDraw; 5] = [
                         &self.robot_a1,
@@ -72,7 +70,7 @@ impl eframe::App for SimulatorApp {
 
                     for obj in circular_obj.into_iter()
                     {
-                        self.draw_circular_obj(&painter, obj, painter_rect.min.to_vec2())
+                        self.draw_circular_obj(&painter, obj, painter_rect.min.to_vec2(), scale)
                     }
                 });
             });
@@ -81,56 +79,56 @@ impl eframe::App for SimulatorApp {
 }
 
 impl SimulatorApp {
-    fn draw_field(&self, painter: &egui::Painter, offset: egui::Vec2) {
-        let stroke: egui::Stroke = egui::Stroke::new(2.0 * self.scale, egui::Color32::WHITE);
+    fn draw_field(&self, painter: &egui::Painter, offset: egui::Vec2, scale:f32) {
+        let stroke: egui::Stroke = egui::Stroke::new(2.0 * scale, egui::Color32::WHITE);
         painter.rect_filled(
             egui::Rect::from_min_size(
-                (egui::pos2(0.0, 0.0) * self.scale) + offset,
-                egui::vec2(infos::FIELD_DEPTH as f32, infos::FIELD_WIDTH as f32) * self.scale,
+                (egui::pos2(0.0, 0.0) * scale) + offset,
+                egui::vec2(infos::FIELD_DEPTH as f32, infos::FIELD_WIDTH as f32) * scale,
             ),
             0.0,
             egui::Color32::from_rgb(0, 128, 0),
         );
         painter.hline(
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.x
-                ..=(((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale)
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) + offset.x
+                ..=(((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * scale)
                     + offset.x,
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.y,
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) + offset.y,
             stroke,
         );
         painter.hline(
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.x
-                ..=(((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale)
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) + offset.x
+                ..=(((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * scale)
                     + offset.x,
-            (((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale) + offset.y,
+            (((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * scale) + offset.y,
             stroke,
         );
         painter.vline(
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.x,
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.y
-                ..=(((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale)
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) + offset.x,
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) + offset.y
+                ..=(((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * scale)
                     + offset.y,
             stroke,
         );
         painter.vline(
-            (((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale) + offset.x,
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) + offset.y
-                ..=(((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * self.scale)
+            (((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * scale) + offset.x,
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) + offset.y
+                ..=(((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * scale)
                     + offset.y,
             stroke,
         );
 
-        let radius: f32 = (infos::ENBUT_RADIUS as f32) * self.scale;
+        let radius: f32 = (infos::ENBUT_RADIUS as f32) * scale;
 
         // left enbut
         painter.rect_stroke(
             egui::Rect::from_min_size(
                 egui::pos2(
-                    offset.x + ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale),
+                    offset.x + ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale),
                     offset.y
-                        + ((((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) as f32) / 2.0) * self.scale),
+                        + ((((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) as f32) / 2.0) * scale),
                 ),
-                egui::vec2(infos::ENBUT_DEPTH as f32, infos::ENBUT_WIDTH as f32) * self.scale,
+                egui::vec2(infos::ENBUT_DEPTH as f32, infos::ENBUT_WIDTH as f32) * scale,
             ),
             egui::Rounding {
                 nw: 0.0,
@@ -149,11 +147,11 @@ impl SimulatorApp {
                         + (((infos::FIELD_DEPTH
                             - infos::ENBUT_DEPTH
                             - infos::SPACE_BEFORE_LINE_SIDE) as f32)
-                            * self.scale),
+                            * scale),
                     offset.y
-                        + ((((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) as f32) / 2.0) * self.scale),
+                        + ((((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) as f32) / 2.0) * scale),
                 ),
-                egui::vec2(infos::ENBUT_DEPTH as f32, infos::ENBUT_WIDTH as f32) * self.scale,
+                egui::vec2(infos::ENBUT_DEPTH as f32, infos::ENBUT_WIDTH as f32) * scale,
             ),
             egui::Rounding {
                 nw: radius,
@@ -165,8 +163,8 @@ impl SimulatorApp {
         );
 
         let goal_size = egui::vec2(
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * self.scale) - stroke.width / 2.0,
-            (infos::GOAL_WIDTH as f32) * self.scale,
+            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) - stroke.width / 2.0,
+            (infos::GOAL_WIDTH as f32) * scale,
         );
 
         // yellow goal
@@ -175,7 +173,7 @@ impl SimulatorApp {
                 egui::pos2(
                     offset.x,
                     offset.y
-                        + (((infos::FIELD_WIDTH - infos::GOAL_WIDTH) as f32) / 2.0) * self.scale,
+                        + (((infos::FIELD_WIDTH - infos::GOAL_WIDTH) as f32) / 2.0) * scale,
                 ),
                 goal_size,
             ),
@@ -187,9 +185,9 @@ impl SimulatorApp {
         painter.rect_filled(
             egui::Rect::from_min_size(
                 egui::pos2(
-                    offset.x + ((infos::FIELD_DEPTH as f32) * self.scale) - goal_size.x,
+                    offset.x + ((infos::FIELD_DEPTH as f32) * scale) - goal_size.x,
                     offset.y
-                        + (((infos::FIELD_WIDTH - infos::GOAL_WIDTH) as f32) / 2.0) * self.scale,
+                        + (((infos::FIELD_WIDTH - infos::GOAL_WIDTH) as f32) / 2.0) * scale,
                 ),
                 goal_size,
             ),
@@ -203,10 +201,11 @@ impl SimulatorApp {
         painter: &egui::Painter,
         obj: &dyn CircularDraw,
         offset: egui::Vec2,
+        scale: f32,
     ) {
         painter.circle_filled(
-            (obj.position() * self.scale) + offset,
-            obj.radius() * self.scale,
+            (obj.position() * scale) + offset,
+            obj.radius() * scale,
             obj.color(),
         );
     }
