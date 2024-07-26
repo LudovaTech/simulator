@@ -16,11 +16,11 @@ struct SimulatorApp {
 impl Default for SimulatorApp {
     fn default() -> Self {
         Self {
-            robot_a1: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 255, 0)),
-            robot_a2: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(0, 255, 255)),
-            robot_b1: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 0, 255)),
-            robot_b2: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 255, 255)),
-            ball: Ball::new(vector2(100.0, 100.0), egui::Color32::from_rgb(255, 165, 0)),
+            robot_a1: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 255, 0), 1500.0),
+            robot_a2: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(0, 255, 255), 1500.0),
+            robot_b1: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 0, 255), 1500.0),
+            robot_b2: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 255, 255), 1500.0),
+            ball: Ball::new(vector2(100.0, 100.0), egui::Color32::from_rgb(255, 165, 0), 100.0),
         }
     }
 }
@@ -35,10 +35,10 @@ impl eframe::App for SimulatorApp {
                 ui.vertical(|ui| {
                     ui.set_width(BUTTON_PANEL_WIDTH);
                     if ui.button("Move Robot A1 Right").clicked() {
-                        self.robot_a1.pos.x += 10.0;
+                        self.robot_a1.move_base.position.x += 10.0;
                     }
                     if ui.button("Move Robot 2 Left").clicked() {
-                        self.robot_b1.pos.x -= 10.0;
+                        self.robot_b1.move_base.position.x -= 10.0;
                     }
                 });
 
@@ -60,17 +60,17 @@ impl eframe::App for SimulatorApp {
 
                     self.draw_field(&painter, painter_rect.min.to_vec2(), scale);
 
-                    let circular_obj: [&dyn Drawable; 5] = [
+                    let circular_obj: [&Robot; 4] = [
                         &self.robot_a1,
                         &self.robot_a2,
                         &self.robot_b1,
                         &self.robot_b2,
-                        &self.ball,
                     ];
 
                     for obj in circular_obj.into_iter() {
                         obj.draw(&painter, painter_rect.min.to_vec2(), scale)
                     }
+                    self.ball.draw(&painter, painter_rect.min.to_vec2(), scale)
                 });
             });
         });
