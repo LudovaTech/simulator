@@ -79,7 +79,7 @@ impl Robot {
             position: pos,
             velocity: Vector2 { x: 0.0, y: 0.0 },
             mass,
-            radius: infos::ROBOT_RADIUS as f32,
+            radius: infos::ROBOT_RADIUS,
             restitution: 1.0,
         };
         Self {
@@ -94,7 +94,7 @@ impl Drawable for Robot {
         draw_circular_generic(
             painter,
             self.move_base.position.to_egui_pos2(),
-            infos::ROBOT_RADIUS as f32,
+            infos::ROBOT_RADIUS,
             self.color,
             offset,
             scale,
@@ -115,7 +115,7 @@ impl Ball {
             position: pos,
             velocity: Vector2 { x: 0.0, y: 0.0 },
             mass,
-            radius: infos::ROBOT_RADIUS as f32,
+            radius: infos::ROBOT_RADIUS,
             restitution: 1.0,
         };
         Self { move_base, color }
@@ -127,7 +127,7 @@ impl Drawable for Ball {
         draw_circular_generic(
             painter,
             self.move_base.position.to_egui_pos2(),
-            infos::BALL_RADIUS as f32,
+            infos::BALL_RADIUS,
             self.color,
             offset,
             scale,
