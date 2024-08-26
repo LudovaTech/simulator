@@ -1,11 +1,13 @@
 use crate::objects::{Ball, Drawable, Robot};
 
 use crate::infos;
-use crate::vector2::vector2;
+use crate::world::World;
+use nalgebra::vector;
 
 const BUTTON_PANEL_WIDTH: f32 = 150.0;
 
 struct SimulatorApp {
+    world: &'static mut World,
     robot_a1: Robot,
     robot_a2: Robot,
     robot_b1: Robot,
@@ -13,20 +15,9 @@ struct SimulatorApp {
     ball: Ball,
 }
 
-impl Default for SimulatorApp {
-    fn default() -> Self {
-        Self {
-            robot_a1: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 255, 0), 1500.0),
-            robot_a2: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(0, 255, 255), 1500.0),
-            robot_b1: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 0, 255), 1500.0),
-            robot_b2: Robot::new(vector2(50.0, 50.0), egui::Color32::from_rgb(255, 255, 255), 1500.0),
-            ball: Ball::new(vector2(100.0, 100.0), egui::Color32::from_rgb(255, 165, 0), 100.0),
-        }
-    }
-}
-
 impl eframe::App for SimulatorApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.world.step();
         egui::CentralPanel::default().show(ctx, |ui| {
             let window_size = ui.max_rect();
             ui.horizontal(|ui| {
@@ -78,6 +69,17 @@ impl eframe::App for SimulatorApp {
 }
 
 impl SimulatorApp {
+    fn new(world: &'static mut World) -> Self {
+        Self {
+            world,
+            robot_a1: Robot::new(vector!(50.0, 50.0), egui::Color32::from_rgb(255, 255, 0), 1500.0),
+            robot_a2: Robot::new(vector!(50.0, 50.0), egui::Color32::from_rgb(0, 255, 255), 1500.0),
+            robot_b1: Robot::new(vector!(50.0, 50.0), egui::Color32::from_rgb(255, 0, 255), 1500.0),
+            robot_b2: Robot::new(vector!(50.0, 50.0), egui::Color32::from_rgb(255, 255, 255), 1500.0),
+            ball: Ball::new(vector!(100.0, 100.0), egui::Color32::from_rgb(255, 165, 0), 100.0),
+        }
+    }
+
     fn draw_field(&self, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
         let stroke: egui::Stroke = egui::Stroke::new(2.0 * scale, egui::Color32::WHITE);
         painter.rect_filled(
@@ -192,11 +194,11 @@ impl SimulatorApp {
     }
 }
 
-pub fn start() -> Result<(), eframe::Error> {
+pub fn start(world: &'static mut World) -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions::default();
     eframe::run_native(
         "Robot Analyzer",
         options,
-        Box::new(|_cc| Box::<SimulatorApp>::default()),
+        Box::new(|_cc| Box::new(SimulatorApp::new(world))),
     )
 }

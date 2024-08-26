@@ -1,9 +1,8 @@
 //! Use Composition over inheritance in Rust !
 
-use crate::{
-    infos,
-    vector2::{vector2, EguiConvertCompatibility, Vector2},
-};
+use crate::{infos, vector_improver::EguiConvertCompatibility};
+use rapier2d::prelude::*;
+use nalgebra::Vector2;
 
 pub trait Drawable {
     fn draw(&self, painter: &egui::Painter, offset: egui::Vec2, scale: f32);
@@ -26,8 +25,8 @@ fn draw_circular_generic(
 
 ///TODO, should be private
 pub struct CircularMoveBase {
-    pub position: Vector2,
-    pub velocity: Vector2,
+    pub position: Vector2<f32>,
+    pub velocity: Vector2<f32>,
     pub mass: f32,
     pub radius: f32,
     pub restitution: f32,
@@ -39,30 +38,11 @@ impl CircularMoveBase {
     }
 
     fn collides(&self, other: &CircularMoveBase) -> bool {
-        let distance = (self.position - other.position).length();
-        distance <= self.radius + other.radius
+        todo!()
     }
 
     fn handle_collision(&mut self, other: &mut CircularMoveBase) {
-        let normal = (other.position - self.position).normalise();
-
-        let relative_velocity = other.velocity - self.velocity;
-        let vel_along_normal = Vector2::dot(relative_velocity, normal);
-
-        if vel_along_normal > 0.0 {
-            return;
-        }
-
-        let j = -(1.0 + (self.restitution + other.restitution) / 2.0) * vel_along_normal;
-        let j = j / (1.0 / self.mass + 1.0 / other.mass);
-
-        let impulse = normal * j;
-
-        self.velocity.x -= impulse.x / self.mass;
-        self.velocity.y -= impulse.y / self.mass;
-
-        other.velocity.x += impulse.x / other.mass;
-        other.velocity.y += impulse.y / other.mass;
+        todo!()
     }
 }
 
@@ -74,10 +54,10 @@ pub struct Robot {
 }
 
 impl Robot {
-    pub fn new(pos: Vector2, color: egui::Color32, mass: f32) -> Self {
+    pub fn new(pos: Vector2<f32>, color: egui::Color32, mass: f32) -> Self {
         let move_base = CircularMoveBase {
             position: pos,
-            velocity: Vector2 { x: 0.0, y: 0.0 },
+            velocity: Vector2::zeros(),
             mass,
             radius: infos::ROBOT_RADIUS,
             restitution: 1.0,
@@ -110,10 +90,10 @@ pub struct Ball {
 }
 
 impl Ball {
-    pub fn new(pos: Vector2, color: egui::Color32, mass: f32) -> Self {
+    pub fn new(pos: Vector2<f32>, color: egui::Color32, mass: f32) -> Self {
         let move_base = CircularMoveBase {
             position: pos,
-            velocity: Vector2 { x: 0.0, y: 0.0 },
+            velocity: Vector2::zeros(),
             mass,
             radius: infos::ROBOT_RADIUS,
             restitution: 1.0,
