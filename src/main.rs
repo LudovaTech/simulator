@@ -4,8 +4,6 @@ mod vector_improver;
 mod objects;
 mod world;
 
-use rapier2d::prelude::*;
-
 // fn amain() -> Result<(), eframe::Error> {
 //     gui::start()
 // }

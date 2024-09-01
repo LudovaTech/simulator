@@ -1,4 +1,3 @@
-use nalgebra::Vector2;
 use rapier2d::prelude::*;
 
 pub struct World {

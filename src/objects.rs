@@ -42,7 +42,7 @@ impl CircularMoveBuilder {
         }
     }
 
-    fn build(self, world: &'static mut World) -> RigidBodyHandle {
+    fn build(self, world: &mut World) -> RigidBodyHandle {
         let body = RigidBodyBuilder::dynamic()
             .translation(self.position)
             .build();
@@ -64,7 +64,7 @@ pub struct Robot {
 }
 
 impl Robot {
-    pub fn new(world: &'static mut World, position: Vector2<f32>, color: egui::Color32, mass: f32) -> Self {
+    pub fn new(world: &mut World, position: Vector2<f32>, color: egui::Color32, mass: f32) -> Self {
         let handle = CircularMoveBuilder {
             position,
             mass,
@@ -99,7 +99,7 @@ pub struct Ball {
 }
 
 impl Ball {
-    pub fn new(world: &'static mut World, position: Vector2<f32>, color: egui::Color32, mass: f32) -> Self {
+    pub fn new(world: &mut World, position: Vector2<f32>, color: egui::Color32, mass: f32) -> Self {
         let handle = CircularMoveBuilder {
             position,
             mass,
