@@ -82,7 +82,7 @@ impl Drawable for Robot {
     fn draw(&self, world: &World, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
         draw_circular_generic(
             painter,
-            world.rigid_body_set[self.handle].translation().to_egui_pos2(),
+            world.rigid_body_set[self.handle].position().translation.vector.to_egui_pos2(),
             infos::ROBOT_RADIUS,
             self.color,
             offset,
@@ -117,7 +117,7 @@ impl Drawable for Ball {
     fn draw(&self, world: &World, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
         draw_circular_generic(
             painter,
-            world.rigid_body_set[self.handle].translation().to_egui_pos2(),
+            world.rigid_body_set[self.handle].position().translation.vector.to_egui_pos2(),
             infos::BALL_RADIUS,
             self.color,
             offset,

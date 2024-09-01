@@ -43,8 +43,8 @@ impl eframe::App for SimulatorApp {
 
                     let painter = ui.painter_at(painter_rect);
 
-                    let scale: f32 = (painter_rect.width() / (infos::FIELD_DEPTH as f32))
-                        .min(painter_rect.height() / (infos::FIELD_WIDTH as f32));
+                    let scale: f32 = (painter_rect.width() / infos::FIELD_DEPTH)
+                        .min(painter_rect.height() / infos::FIELD_WIDTH);
 
                     // montre la zone du painter
                     // painter.rect_filled(painter_rect, 0.0, egui::Color32::BLUE);
@@ -65,6 +65,7 @@ impl eframe::App for SimulatorApp {
                 });
             });
         });
+        ctx.request_repaint();
     }
 }
 
@@ -92,50 +93,50 @@ impl SimulatorApp {
         painter.rect_filled(
             egui::Rect::from_min_size(
                 (egui::pos2(0.0, 0.0) * scale) + offset,
-                egui::vec2(infos::FIELD_DEPTH as f32, infos::FIELD_WIDTH as f32) * scale,
+                egui::vec2(infos::FIELD_DEPTH, infos::FIELD_WIDTH) * scale,
             ),
             0.0,
             egui::Color32::from_rgb(0, 128, 0),
         );
         painter.hline(
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) + offset.x
-                ..=(((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * scale)
+            (infos::SPACE_BEFORE_LINE_SIDE * scale) + offset.x
+                ..=((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) * scale)
                     + offset.x,
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) + offset.y,
+            (infos::SPACE_BEFORE_LINE_SIDE * scale) + offset.y,
             stroke,
         );
         painter.hline(
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) + offset.x
-                ..=(((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * scale)
+            (infos::SPACE_BEFORE_LINE_SIDE * scale) + offset.x
+                ..=((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) * scale)
                     + offset.x,
-            (((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * scale) + offset.y,
+            ((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) * scale) + offset.y,
             stroke,
         );
         painter.vline(
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) + offset.x,
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) + offset.y
-                ..=(((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * scale)
+            (infos::SPACE_BEFORE_LINE_SIDE * scale) + offset.x,
+            (infos::SPACE_BEFORE_LINE_SIDE * scale) + offset.y
+                ..=((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) * scale)
                     + offset.y,
             stroke,
         );
         painter.vline(
-            (((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * scale) + offset.x,
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) + offset.y
-                ..=(((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) as f32) * scale)
+            ((infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE) * scale) + offset.x,
+            (infos::SPACE_BEFORE_LINE_SIDE * scale) + offset.y
+                ..=((infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE) * scale)
                     + offset.y,
             stroke,
         );
 
-        let radius: f32 = (infos::ENBUT_RADIUS as f32) * scale;
+        let radius: f32 = infos::ENBUT_RADIUS * scale;
 
         // left enbut
         painter.rect_stroke(
             egui::Rect::from_min_size(
                 egui::pos2(
-                    offset.x + ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale),
-                    offset.y + ((((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) as f32) / 2.0) * scale),
+                    offset.x + (infos::SPACE_BEFORE_LINE_SIDE * scale),
+                    offset.y + (((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) / 2.0) * scale),
                 ),
-                egui::vec2(infos::ENBUT_DEPTH as f32, infos::ENBUT_WIDTH as f32) * scale,
+                egui::vec2(infos::ENBUT_DEPTH, infos::ENBUT_WIDTH) * scale,
             ),
             egui::Rounding {
                 nw: 0.0,
@@ -151,13 +152,13 @@ impl SimulatorApp {
             egui::Rect::from_min_size(
                 egui::pos2(
                     offset.x
-                        + (((infos::FIELD_DEPTH
+                        + ((infos::FIELD_DEPTH
                             - infos::ENBUT_DEPTH
-                            - infos::SPACE_BEFORE_LINE_SIDE) as f32)
+                            - infos::SPACE_BEFORE_LINE_SIDE)
                             * scale),
-                    offset.y + ((((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) as f32) / 2.0) * scale),
+                    offset.y + (((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) / 2.0) * scale),
                 ),
-                egui::vec2(infos::ENBUT_DEPTH as f32, infos::ENBUT_WIDTH as f32) * scale,
+                egui::vec2(infos::ENBUT_DEPTH, infos::ENBUT_WIDTH) * scale,
             ),
             egui::Rounding {
                 nw: radius,
@@ -169,8 +170,8 @@ impl SimulatorApp {
         );
 
         let goal_size = egui::vec2(
-            ((infos::SPACE_BEFORE_LINE_SIDE as f32) * scale) - stroke.width / 2.0,
-            (infos::GOAL_WIDTH as f32) * scale,
+            (infos::SPACE_BEFORE_LINE_SIDE * scale) - stroke.width / 2.0,
+            infos::GOAL_WIDTH * scale,
         );
 
         // yellow goal
@@ -178,7 +179,7 @@ impl SimulatorApp {
             egui::Rect::from_min_size(
                 egui::pos2(
                     offset.x,
-                    offset.y + (((infos::FIELD_WIDTH - infos::GOAL_WIDTH) as f32) / 2.0) * scale,
+                    offset.y + ((infos::FIELD_WIDTH - infos::GOAL_WIDTH) / 2.0) * scale,
                 ),
                 goal_size,
             ),
@@ -190,8 +191,8 @@ impl SimulatorApp {
         painter.rect_filled(
             egui::Rect::from_min_size(
                 egui::pos2(
-                    offset.x + ((infos::FIELD_DEPTH as f32) * scale) - goal_size.x,
-                    offset.y + (((infos::FIELD_WIDTH - infos::GOAL_WIDTH) as f32) / 2.0) * scale,
+                    offset.x + (infos::FIELD_DEPTH * scale) - goal_size.x,
+                    offset.y + ((infos::FIELD_WIDTH - infos::GOAL_WIDTH) / 2.0) * scale,
                 ),
                 goal_size,
             ),
