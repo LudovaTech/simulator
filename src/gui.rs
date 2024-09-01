@@ -26,10 +26,10 @@ impl eframe::App for SimulatorApp {
                 ui.vertical(|ui| {
                     ui.set_width(BUTTON_PANEL_WIDTH);
                     if ui.button("Move Robot A1 Right").clicked() {
-                        self.robot_a1.move_base.position.x += 10.0;
+                        //self.robot_a1.move_base.position.x += 10.0;
                     }
                     if ui.button("Move Robot 2 Left").clicked() {
-                        self.robot_b1.move_base.position.x -= 10.0;
+                        //self.robot_b1.move_base.position.x -= 10.0;
                     }
                 });
 
@@ -59,9 +59,9 @@ impl eframe::App for SimulatorApp {
                     ];
 
                     for obj in circular_obj.into_iter() {
-                        obj.draw(&painter, painter_rect.min.to_vec2(), scale)
+                        obj.draw(self.world, &painter, painter_rect.min.to_vec2(), scale)
                     }
-                    self.ball.draw(&painter, painter_rect.min.to_vec2(), scale)
+                    self.ball.draw(self.world, &painter, painter_rect.min.to_vec2(), scale)
                 });
             });
         });
@@ -70,13 +70,20 @@ impl eframe::App for SimulatorApp {
 
 impl SimulatorApp {
     fn new(world: &'static mut World) -> Self {
+        let robot_a1 = Robot::new(world, vector!(50.0, 50.0), egui::Color32::from_rgb(255, 255, 0), 1500.0);
+        let robot_a2 = Robot::new(world, vector!(50.0, 50.0), egui::Color32::from_rgb(0, 255, 255), 1500.0);
+        let robot_b1 = Robot::new(world, vector!(50.0, 50.0), egui::Color32::from_rgb(255, 0, 255), 1500.0);
+        let robot_b2 = Robot::new(world, vector!(50.0, 50.0), egui::Color32::from_rgb(255, 255, 255), 1500.0);
+        let ball = Ball::new(world, vector!(100.0, 100.0), egui::Color32::from_rgb(255, 165, 0), 100.0);
+
+        // Maintenant, créez et retournez l'application
         Self {
             world,
-            robot_a1: Robot::new(vector!(50.0, 50.0), egui::Color32::from_rgb(255, 255, 0), 1500.0),
-            robot_a2: Robot::new(vector!(50.0, 50.0), egui::Color32::from_rgb(0, 255, 255), 1500.0),
-            robot_b1: Robot::new(vector!(50.0, 50.0), egui::Color32::from_rgb(255, 0, 255), 1500.0),
-            robot_b2: Robot::new(vector!(50.0, 50.0), egui::Color32::from_rgb(255, 255, 255), 1500.0),
-            ball: Ball::new(vector!(100.0, 100.0), egui::Color32::from_rgb(255, 165, 0), 100.0),
+            robot_a1,
+            robot_a2,
+            robot_b1,
+            robot_b2,
+            ball,
         }
     }
 

@@ -2,20 +2,20 @@ use nalgebra::Vector2;
 use rapier2d::prelude::*;
 
 pub struct World {
-    rigid_body_set: RigidBodySet,
-    collider_set: ColliderSet,
-    gravity: nalgebra::Vector2<f32>,
-    integration_parameters: IntegrationParameters,
-    physics_pipeline: PhysicsPipeline,
-    island_manager: IslandManager,
-    broad_phase: DefaultBroadPhase,
-    narrow_phase: NarrowPhase,
-    impulse_joint_set: ImpulseJointSet,
-    multibody_joint_set: MultibodyJointSet,
-    ccd_solver: CCDSolver,
-    query_pipeline: QueryPipeline,
-    physics_hooks: (),
-    event_handler: (),
+    pub rigid_body_set: RigidBodySet,
+    pub collider_set: ColliderSet,
+    pub gravity: nalgebra::Vector2<f32>,
+    pub integration_parameters: IntegrationParameters,
+    pub physics_pipeline: PhysicsPipeline,
+    pub island_manager: IslandManager,
+    pub broad_phase: DefaultBroadPhase,
+    pub narrow_phase: NarrowPhase,
+    pub impulse_joint_set: ImpulseJointSet,
+    pub multibody_joint_set: MultibodyJointSet,
+    pub ccd_solver: CCDSolver,
+    pub query_pipeline: QueryPipeline,
+    pub physics_hooks: (),
+    pub event_handler: (),
 }
 
 impl World {
