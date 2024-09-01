@@ -27,9 +27,11 @@ impl eframe::App for SimulatorApp {
                     ui.set_width(BUTTON_PANEL_WIDTH);
                     if ui.button("Move Robot A1 Right").clicked() {
                         //self.robot_a1.move_base.position.x += 10.0;
+                        self.world.rigid_body_set[self.robot_a1.handle].apply_impulse(vector![10000.0, 0.0], true);
                     }
                     if ui.button("Move Robot 2 Left").clicked() {
                         //self.robot_b1.move_base.position.x -= 10.0;
+                        self.world.rigid_body_set[self.robot_b1.handle].apply_impulse(vector![10000.0, 0.0], true);
                     }
                 });
 
