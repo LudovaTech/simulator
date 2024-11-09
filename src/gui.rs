@@ -3,6 +3,7 @@ use crate::objects::{Ball, Robot};
 use crate::infos;
 use crate::world::World;
 use nalgebra::vector;
+use rapier2d::prelude::{Collider, ColliderBuilder};
 
 const BUTTON_PANEL_WIDTH: f32 = 150.0;
 
@@ -28,6 +29,18 @@ impl eframe::App for SimulatorApp {
                     if ui.button("Move Robot A1 Right").clicked() {
                         //self.robot_a1.move_base.position.x += 10.0;
                         self.world.rigid_body_set[self.robot_a1.handle].apply_impulse(vector![10000.0, 0.0], true);
+                    }
+                    if ui.button("Move Robot A1 Left").clicked() {
+                        //self.robot_a1.move_base.position.x += 10.0;
+                        self.world.rigid_body_set[self.robot_a1.handle].apply_impulse(vector![-10000.0, 0.0], true);
+                    }
+                    if ui.button("Move Robot A1 Up").clicked() {
+                        //self.robot_a1.move_base.position.x += 10.0;
+                        self.world.rigid_body_set[self.robot_a1.handle].apply_impulse(vector![0.0, -10000.0], true);
+                    }
+                    if ui.button("Move Robot A1 Down").clicked() {
+                        //self.robot_a1.move_base.position.x += 10.0;
+                        self.world.rigid_body_set[self.robot_a1.handle].apply_impulse(vector![0.0, 10000.0], true);
                     }
                     if ui.button("Move Robot 2 Left").clicked() {
                         //self.robot_b1.move_base.position.x -= 10.0;
@@ -69,10 +82,12 @@ impl eframe::App for SimulatorApp {
 impl SimulatorApp {
     fn new(world: &'static mut World) -> Self {
         let robot_a1 = Robot::new(world, vector!(50.0, 50.0), egui::Color32::from_rgb(255, 255, 0), 1500.0);
-        let robot_a2 = Robot::new(world, vector!(50.0, 50.0), egui::Color32::from_rgb(0, 255, 255), 1500.0);
-        let robot_b1 = Robot::new(world, vector!(50.0, 50.0), egui::Color32::from_rgb(255, 0, 255), 1500.0);
-        let robot_b2 = Robot::new(world, vector!(50.0, 50.0), egui::Color32::from_rgb(255, 255, 255), 1500.0);
+        let robot_a2 = Robot::new(world, vector!(50.0, 75.0), egui::Color32::from_rgb(0, 255, 255), 1500.0);
+        let robot_b1 = Robot::new(world, vector!(50.0, 100.0), egui::Color32::from_rgb(255, 0, 255), 1500.0);
+        let robot_b2 = Robot::new(world, vector!(50.0, 125.0), egui::Color32::from_rgb(255, 255, 255), 1500.0);
         let ball = Ball::new(world, vector!(100.0, 100.0), egui::Color32::from_rgb(255, 165, 0), 100.0);
+
+        SimulatorApp::add_field_colliders(world);
 
         // Maintenant, créez et retournez l'application
         Self {
@@ -83,6 +98,27 @@ impl SimulatorApp {
             robot_b2,
             ball,
         }
+    }
+
+    fn add_field_colliders(world: &mut World) {
+        
+        let front = ColliderBuilder::cuboid(infos::FIELD_DEPTH, 1.0)
+            .build();
+        world.collider_set.insert(front);
+
+        let bottom = ColliderBuilder::cuboid(infos::FIELD_DEPTH, 1.0)
+            .translation(vector![0.0, infos::FIELD_WIDTH])
+            .build();
+        world.collider_set.insert(bottom);
+
+        let left = ColliderBuilder::cuboid(1.0, infos::FIELD_WIDTH)
+            .build();
+        world.collider_set.insert(left);
+
+        let right = ColliderBuilder::cuboid(1.0, infos::FIELD_WIDTH)
+            .translation(vector![infos::FIELD_DEPTH, 0.0])
+            .build();
+        world.collider_set.insert(right);
     }
 
     fn draw_field(&self, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
