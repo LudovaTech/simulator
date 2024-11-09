@@ -238,7 +238,7 @@ impl SimulatorApp {
 pub fn start(world: &'static mut World) -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions::default();
     eframe::run_native(
-        "Robot Analyzer",
+        "Simulator",
         options,
         Box::new(|_cc| Box::new(SimulatorApp::new(world))),
     )
