@@ -119,6 +119,26 @@ impl SimulatorApp {
             .translation(vector![infos::FIELD_DEPTH, 0.0])
             .build();
         world.collider_set.insert(right);
+
+        let goal_left_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+            .translation(vector![0.0, (infos::FIELD_WIDTH / 2.0) - (infos::GOAL_WIDTH /2.0)])
+            .build();
+        world.collider_set.insert(goal_left_up);
+
+        let goal_left_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+            .translation(vector![0.0, (infos::FIELD_WIDTH / 2.0) + (infos::GOAL_WIDTH /2.0)])
+            .build();
+        world.collider_set.insert(goal_left_down);
+
+        let goal_right_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+            .translation(vector![infos::FIELD_DEPTH, (infos::FIELD_WIDTH / 2.0) - (infos::GOAL_WIDTH /2.0)])
+            .build();
+        world.collider_set.insert(goal_right_up);
+
+        let goal_right_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+            .translation(vector![infos::FIELD_DEPTH, (infos::FIELD_WIDTH / 2.0) + (infos::GOAL_WIDTH /2.0)])
+            .build();
+        world.collider_set.insert(goal_right_down);
     }
 
     fn draw_field(&self, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
