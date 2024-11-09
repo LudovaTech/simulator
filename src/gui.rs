@@ -1,4 +1,4 @@
-use crate::objects::{Ball, Drawable, Robot};
+use crate::objects::{Ball, Robot};
 
 use crate::infos;
 use crate::world::World;
@@ -53,16 +53,11 @@ impl eframe::App for SimulatorApp {
 
                     self.draw_field(&painter, painter_rect.min.to_vec2(), scale);
 
-                    let circular_obj: [&Robot; 4] = [
-                        &self.robot_a1,
-                        &self.robot_a2,
-                        &self.robot_b1,
-                        &self.robot_b2,
-                    ];
+                    self.robot_a1.draw(self.world, &painter, painter_rect.min.to_vec2(), scale);
+                    self.robot_a2.draw(self.world, &painter, painter_rect.min.to_vec2(), scale);
+                    self.robot_b1.draw(self.world, &painter, painter_rect.min.to_vec2(), scale);
+                    self.robot_b2.draw(self.world, &painter, painter_rect.min.to_vec2(), scale);
 
-                    for obj in circular_obj.into_iter() {
-                        obj.draw(self.world, &painter, painter_rect.min.to_vec2(), scale)
-                    }
                     self.ball.draw(self.world, &painter, painter_rect.min.to_vec2(), scale)
                 });
             });

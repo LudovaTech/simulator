@@ -4,10 +4,6 @@ use crate::{infos, vector_improver::EguiConvertCompatibility, world::World};
 use rapier2d::prelude::*;
 use nalgebra::Vector2;
 
-pub trait Drawable {
-    fn draw(&self, world: &World, painter: &egui::Painter, offset: egui::Vec2, scale: f32);
-}
-
 //////////// FUNCTIONS
 
 fn draw_circular_generic(
@@ -76,10 +72,8 @@ impl Robot {
             color,
         }
     }
-}
 
-impl Drawable for Robot {
-    fn draw(&self, world: &World, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
+    pub fn draw(&self, world: &World, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
         draw_circular_generic(
             painter,
             world.rigid_body_set[self.handle].position().translation.vector.to_egui_pos2(),
@@ -111,10 +105,8 @@ impl Ball {
             color,
         }
     }
-}
 
-impl Drawable for Ball {
-    fn draw(&self, world: &World, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
+    pub fn draw(&self, world: &World, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
         draw_circular_generic(
             painter,
             world.rigid_body_set[self.handle].position().translation.vector.to_egui_pos2(),
