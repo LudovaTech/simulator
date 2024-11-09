@@ -19,6 +19,7 @@ struct SimulatorApp {
 impl eframe::App for SimulatorApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.world.step();
+        self.world.process_collision_events();
         egui::CentralPanel::default().show(ctx, |ui| {
             let window_size = ui.max_rect();
             ui.horizontal(|ui| {

@@ -44,6 +44,7 @@ impl CircularMoveBuilder {
             .build();
         let handle = world.rigid_body_set.insert(body);
         let collider = ColliderBuilder::ball(self.radius)
+            .active_events(ActiveEvents::COLLISION_EVENTS)
             .mass(self.mass)
             .friction(self.friction)
             .build();

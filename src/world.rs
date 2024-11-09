@@ -1,3 +1,4 @@
+use crossbeam::channel::Receiver;
 use rapier2d::prelude::*;
 
 pub struct World {
@@ -14,11 +15,15 @@ pub struct World {
     pub ccd_solver: CCDSolver,
     pub query_pipeline: QueryPipeline,
     pub physics_hooks: (),
-    pub event_handler: (),
+    pub event_handler: ChannelEventCollector,
+    pub collision_recv: Receiver<CollisionEvent>,
+    pub contact_force_recv: Receiver<ContactForceEvent>,
 }
 
 impl World {
     pub fn default() -> World {
+        let (collision_sender, collision_recv) = crossbeam::channel::unbounded();
+        let (contact_force_sender, contact_force_recv) = crossbeam::channel::unbounded();
         World {
             rigid_body_set: RigidBodySet::new(),
             collider_set: ColliderSet::new(),
@@ -33,7 +38,9 @@ impl World {
             ccd_solver: CCDSolver::new(),
             query_pipeline: QueryPipeline::new(),
             physics_hooks: (),
-            event_handler: (),
+            event_handler: ChannelEventCollector::new(collision_sender, contact_force_sender),
+            collision_recv,
+            contact_force_recv,
         }
     }
 
@@ -53,5 +60,12 @@ impl World {
             &self.physics_hooks,
             &self.event_handler,
         );
+    }
+
+    pub fn process_collision_events(&self) {
+        while let Ok(collision_event) = self.collision_recv.try_recv() {
+            println!("Received collision event: {:?}", collision_event);
+            let a = collision_event.collider1();
+        }
     }
 }
