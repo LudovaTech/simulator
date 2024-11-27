@@ -38,7 +38,7 @@ impl CircularMoveBuilder {
         }
     }
 
-    fn build(self, world: &mut World) -> RigidBodyHandle {
+    fn build(self, world: &mut World) -> (RigidBodyHandle, ColliderHandle) {
         let body = RigidBodyBuilder::dynamic()
             .translation(self.position)
             .build();
@@ -48,21 +48,23 @@ impl CircularMoveBuilder {
             .mass(self.mass)
             .friction(self.friction)
             .build();
-        world.collider_set.insert_with_parent(collider, handle, &mut world.rigid_body_set);
-        handle
+        let collider_handle = world.collider_set.insert_with_parent(collider, handle, &mut world.rigid_body_set);
+        (handle, collider_handle) //TODO: refactorisation
     }
 }
 
 ////////////  ROBOT
 
+#[derive(Debug)]
 pub struct Robot {
     pub handle: RigidBodyHandle,
+    pub collider_handle: ColliderHandle,
     pub color: egui::Color32,
 }
 
 impl Robot {
     pub fn new(world: &mut World, position: Vector2<f32>, color: egui::Color32, mass: f32) -> Self {
-        let handle = CircularMoveBuilder {
+        let (handle, collider_handle) = CircularMoveBuilder {
             position,
             mass,
             radius: infos::ROBOT_RADIUS,
@@ -70,6 +72,7 @@ impl Robot {
         }.build(world);
         Self {
             handle,
+            collider_handle,
             color,
         }
     }
@@ -84,18 +87,24 @@ impl Robot {
             scale,
         );
     }
+
+    pub fn collide_with(&self, other: &Robot) {
+        println!("{:?} collides with {:?}", self, other);
+    }
 }
 
 ////////////  BALL
 
+#[derive(Debug)]
 pub struct Ball {
     pub handle: RigidBodyHandle,
+    pub collider_handle: ColliderHandle,
     pub color: egui::Color32,
 }
 
 impl Ball {
     pub fn new(world: &mut World, position: Vector2<f32>, color: egui::Color32, mass: f32) -> Self {
-        let handle = CircularMoveBuilder {
+        let (handle, collider_handle) = CircularMoveBuilder {
             position,
             mass,
             radius: infos::BALL_RADIUS,
@@ -103,6 +112,7 @@ impl Ball {
         }.build(world);
         Self {
             handle,
+            collider_handle,
             color,
         }
     }

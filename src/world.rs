@@ -61,11 +61,4 @@ impl World {
             &self.event_handler,
         );
     }
-
-    pub fn process_collision_events(&self) {
-        while let Ok(collision_event) = self.collision_recv.try_recv() {
-            println!("Received collision event: {:?}", collision_event);
-            let a = collision_event.collider1();
-        }
-    }
 }

@@ -19,7 +19,7 @@ struct SimulatorApp {
 impl eframe::App for SimulatorApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.world.step();
-        self.world.process_collision_events();
+        self.process_collisions();
         egui::CentralPanel::default().show(ctx, |ui| {
             let window_size = ui.max_rect();
             ui.horizontal(|ui| {
@@ -90,7 +90,7 @@ impl SimulatorApp {
 
         SimulatorApp::add_field_colliders(world);
 
-        // Maintenant, créez et retournez l'application
+        // Maintenant, créer et retourner l'application
         Self {
             world,
             robot_a1,
@@ -98,6 +98,32 @@ impl SimulatorApp {
             robot_b1,
             robot_b2,
             ball,
+        }
+    }
+
+    fn process_collisions(&self) {
+        while let Ok(collision_event) = self.world.collision_recv.try_recv() {
+            // println!("Received collision event: {:?}", collision_event);
+            let collider1 = match collision_event.collider1() {
+                collider if collider == self.robot_a1.collider_handle => Some(&self.robot_a1),
+                collider if collider == self.robot_a2.collider_handle => Some(&self.robot_a2),
+                collider if collider == self.robot_b1.collider_handle => Some(&self.robot_b1),
+                collider if collider == self.robot_b2.collider_handle => Some(&self.robot_b2),
+                _ => None,
+            };
+            let collider2 = match collision_event.collider2() {
+                collider if collider == self.robot_a1.collider_handle => Some(&self.robot_a1),
+                collider if collider == self.robot_a2.collider_handle => Some(&self.robot_a2),
+                collider if collider == self.robot_b1.collider_handle => Some(&self.robot_b1),
+                collider if collider == self.robot_b2.collider_handle => Some(&self.robot_b2),
+                _ => None,
+            };
+            
+            if let Some(collide_robot1) = collider1 {
+                if let Some(collide_robot2) = collider2 {
+                    collide_robot1.collide_with(collide_robot2);
+                }
+            }
         }
     }
 
