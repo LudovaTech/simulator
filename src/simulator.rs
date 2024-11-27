@@ -1,8 +1,7 @@
-
-use std::collections::HashMap;
-use crate::robot::RobotHandler;
+use crate::{infos, robot::{RobotBuilder, RobotHandler}};
 use crossbeam::channel::Receiver;
 use rapier2d::prelude::*;
+use std::collections::HashMap;
 
 pub struct SimulatorApp {
     // World (rapier) :
@@ -24,13 +23,62 @@ pub struct SimulatorApp {
     pub contact_force_recv: Receiver<ContactForceEvent>,
     // Simulator :
     pub robots: [RobotHandler; 4],
+    pub robot_to_rigid_body_handle: HashMap<RobotHandler, RigidBodyHandle>,
+    pub collider_to_robot_handle: HashMap<ColliderHandle, RobotHandler>,
 }
 
 impl Default for SimulatorApp {
-    fn default() -> SimulatorApp {
+    fn default() -> Self {
+        SimulatorApp::new(
+            [
+                RobotBuilder{
+                    team_name: 'A',
+                    robot_number: 1,
+                    initial_position: vector!(50.0, 50.0),
+                    friction: infos::ROBOT_FRICTION,
+                    mass: infos::ROBOT_MASS,
+                    radius: infos::ROBOT_RADIUS,
+                },
+                RobotBuilder{
+                    team_name: 'A',
+                    robot_number: 1,
+                    initial_position: vector!(50.0, 75.0),
+                    friction: infos::ROBOT_FRICTION,
+                    mass: infos::ROBOT_MASS,
+                    radius: infos::ROBOT_RADIUS,
+                },
+                RobotBuilder{
+                    team_name: 'B',
+                    robot_number: 2,
+                    initial_position: vector!(50.0, 100.0),
+                    friction: infos::ROBOT_FRICTION,
+                    mass: infos::ROBOT_MASS,
+                    radius: infos::ROBOT_RADIUS,
+                },
+                RobotBuilder{
+                    team_name: 'B',
+                    robot_number: 2,
+                    initial_position: vector!(50.0, 125.0),
+                    friction: infos::ROBOT_FRICTION,
+                    mass: infos::ROBOT_MASS,
+                    radius: infos::ROBOT_RADIUS,
+                },
+            ]
+        )
+    }
+}
+
+impl SimulatorApp {
+    pub fn new(robots_builders: [RobotBuilder; 4]) -> SimulatorApp {
+        let robot_handlers: [RobotHandler; 4] = [
+            robots_builders[0].to_robot_handle(),
+            robots_builders[1].to_robot_handle(),
+            robots_builders[2].to_robot_handle(),
+            robots_builders[3].to_robot_handle(),
+        ];
         let (collision_sender, collision_recv) = crossbeam::channel::unbounded();
         let (contact_force_sender, contact_force_recv) = crossbeam::channel::unbounded();
-        SimulatorApp {
+        let mut sym = SimulatorApp {
             // World (rapier) :
             rigid_body_set: RigidBodySet::new(),
             collider_set: ColliderSet::new(),
@@ -49,15 +97,40 @@ impl Default for SimulatorApp {
             collision_recv,
             contact_force_recv,
             // Simulator :
-            robots: [
-                RobotHandler::new('A', 1),
-                RobotHandler::new('A', 2),
-                RobotHandler::new('B', 1),
-                RobotHandler::new('B', 2),
-            ],
+            robots: robot_handlers,
+            robot_to_rigid_body_handle: HashMap::new(),
+            collider_to_robot_handle: HashMap::new(),
+        };
+
+        // Construct HashMaps
+        for robot_builder in robots_builders {
+            let rigid_body_handle = sym.create_rigid_body(&robot_builder);
+            sym.robot_to_rigid_body_handle.insert(robot_builder.to_robot_handle(), rigid_body_handle);
+            let collider_handle = sym.create_collider(&robot_builder, rigid_body_handle);
+            sym.collider_to_robot_handle.insert(collider_handle, robot_builder.to_robot_handle());
         }
+        sym
     }
 }
+
+impl SimulatorApp {
+    fn create_rigid_body(&mut self, robot_builder: &RobotBuilder) -> RigidBodyHandle {
+        let body = RigidBodyBuilder::dynamic()
+            .translation(robot_builder.initial_position)
+            .build();
+        self.rigid_body_set.insert(body)
+    }
+
+    fn create_collider(&mut self, robot_builder: &RobotBuilder, rigid_body_handle: RigidBodyHandle) -> ColliderHandle {
+        let collider = ColliderBuilder::ball(robot_builder.radius)
+            .active_events(ActiveEvents::COLLISION_EVENTS)
+            .mass(robot_builder.mass)
+            .friction(robot_builder.friction)
+            .build();
+        self.collider_set.insert_with_parent(collider, rigid_body_handle, &mut self.rigid_body_set)
+    }
+}
+
 
 impl SimulatorApp {
     pub fn update(&mut self) {
@@ -77,6 +150,8 @@ impl SimulatorApp {
             &self.physics_hooks,
             &self.event_handler,
         );
-        // 
+        //
     }
+
+    pub fn position_of(robot: RobotHandler) {}
 }
