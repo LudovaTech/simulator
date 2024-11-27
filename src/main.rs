@@ -1,16 +1,10 @@
-use app_ui::AppUI;
+use app_ui::AppContainer;
 
-mod app;
+mod simulator;
 mod app_ui;
-
-// fn amain() -> Result<(), eframe::Error> {
-//     gui::start()
-// }
+mod infos;
 
 fn main() {
-    let app_container = app_ui::AppUI::default();
-    
-    // let world = Box::new(world::World::default());
-    // let reference: &'static mut world::World = Box::leak(world);
-    // gui::start(reference).expect("Erreur lors du lancement du gui");
+    let app_container = app_ui::AppUIContainer::default();
+    app_container.start();
 }
