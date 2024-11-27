@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use nalgebra::vector;
+
 use crate::{
     infos, robot::RobotHandler, simulator::SimulatorApp, vector_converter::EguiConvertCompatibility,
 };
@@ -72,32 +74,26 @@ impl eframe::App for AppUIContainer {
                 ui.vertical(|ui| {
                     ui.set_width(BUTTON_PANEL_WIDTH);
 
-                    /*
                     if ui.button("Move Robot A1 Right").clicked() {
-                        //self.robot_a1.move_base.position.x += 10.0;
-                        self.world.rigid_body_set[self.robot_a1.handle]
-                            .apply_impulse(vector![10000.0, 0.0], true);
+                        self.simulation.rigid_body_set[self.simulation.robot_to_rigid_body_handle
+                            [&RobotHandler::new('A', 1)]]
+                            .apply_impulse(vector![100.0, 0.0], true);
                     }
                     if ui.button("Move Robot A1 Left").clicked() {
-                        //self.robot_a1.move_base.position.x += 10.0;
-                        self.world.rigid_body_set[self.robot_a1.handle]
-                            .apply_impulse(vector![-10000.0, 0.0], true);
+                        self.simulation.rigid_body_set[self.simulation.robot_to_rigid_body_handle
+                            [&RobotHandler::new('A', 1)]]
+                            .apply_impulse(vector![-100.0, 0.0], true);
                     }
                     if ui.button("Move Robot A1 Up").clicked() {
-                        //self.robot_a1.move_base.position.x += 10.0;
-                        self.world.rigid_body_set[self.robot_a1.handle]
-                            .apply_impulse(vector![0.0, -10000.0], true);
+                        self.simulation.rigid_body_set[self.simulation.robot_to_rigid_body_handle
+                            [&RobotHandler::new('A', 1)]]
+                            .apply_impulse(vector![0.0, -100.0], true);
                     }
                     if ui.button("Move Robot A1 Down").clicked() {
-                        //self.robot_a1.move_base.position.x += 10.0;
-                        self.world.rigid_body_set[self.robot_a1.handle]
-                            .apply_impulse(vector![0.0, 10000.0], true);
+                        self.simulation.rigid_body_set[self.simulation.robot_to_rigid_body_handle
+                            [&RobotHandler::new('A', 1)]]
+                            .apply_impulse(vector![0.0, 100.0], true);
                     }
-                    if ui.button("Move Robot 2 Left").clicked() {
-                        //self.robot_b1.move_base.position.x -= 10.0;
-                        self.world.rigid_body_set[self.robot_b1.handle]
-                            .apply_impulse(vector![10000.0, 0.0], true);
-                    }*/
                 });
 
                 // Paint zone
@@ -143,7 +139,13 @@ impl eframe::App for AppUIContainer {
 }
 
 impl AppUIContainer {
-    fn draw_robot(&self, robot_handle: RobotHandler, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
+    fn draw_robot(
+        &self,
+        robot_handle: RobotHandler,
+        painter: &egui::Painter,
+        offset: egui::Vec2,
+        scale: f32,
+    ) {
         let pos = self.simulation.position_of(&robot_handle).to_egui_pos2();
         painter.circle_filled(
             (pos * scale) + offset,
