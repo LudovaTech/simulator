@@ -110,6 +110,8 @@ impl SimulatorApp {
             let collider_handle = sym.create_collider(&robot_builder, rigid_body_handle);
             sym.collider_to_robot_handle.insert(collider_handle, robot_builder.to_robot_handle());
         }
+
+        sym.build_field_colliders();
         sym
     }
 }
@@ -156,5 +158,48 @@ impl SimulatorApp {
 
     pub fn position_of(&self, robot_handle: &RobotHandler) -> Vector2<f32>{
         self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].position().translation.vector
+    }
+}
+
+
+impl SimulatorApp {// TODO refactor plus joliment
+    fn build_field_colliders(&mut self) {
+        let front = ColliderBuilder::cuboid(infos::FIELD_DEPTH, 1.0)
+            .build();
+        self.collider_set.insert(front);
+
+        let bottom = ColliderBuilder::cuboid(infos::FIELD_DEPTH, 1.0)
+            .translation(vector![0.0, infos::FIELD_WIDTH])
+            .build();
+        self.collider_set.insert(bottom);
+
+        let left = ColliderBuilder::cuboid(1.0, infos::FIELD_WIDTH)
+            .build();
+        self.collider_set.insert(left);
+
+        let right = ColliderBuilder::cuboid(1.0, infos::FIELD_WIDTH)
+            .translation(vector![infos::FIELD_DEPTH, 0.0])
+            .build();
+        self.collider_set.insert(right);
+
+        let goal_left_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+            .translation(vector![0.0, (infos::FIELD_WIDTH / 2.0) - (infos::GOAL_WIDTH /2.0)])
+            .build();
+        self.collider_set.insert(goal_left_up);
+
+        let goal_left_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+            .translation(vector![0.0, (infos::FIELD_WIDTH / 2.0) + (infos::GOAL_WIDTH /2.0)])
+            .build();
+        self.collider_set.insert(goal_left_down);
+
+        let goal_right_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+            .translation(vector![infos::FIELD_DEPTH, (infos::FIELD_WIDTH / 2.0) - (infos::GOAL_WIDTH /2.0)])
+            .build();
+        self.collider_set.insert(goal_right_up);
+
+        let goal_right_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+            .translation(vector![infos::FIELD_DEPTH, (infos::FIELD_WIDTH / 2.0) + (infos::GOAL_WIDTH /2.0)])
+            .build();
+        self.collider_set.insert(goal_right_down);
     }
 }

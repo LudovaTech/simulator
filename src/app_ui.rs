@@ -117,20 +117,6 @@ impl eframe::App for AppUIContainer {
                     for robot_handle in self.simulation.robots {
                         self.draw_robot(robot_handle, &painter, painter_rect.min.to_vec2(), scale);
                     }
-
-                    /*
-                    self.robot_a1
-                        .draw(self.world, &painter, painter_rect.min.to_vec2(), scale);
-                    self.robot_a2
-                        .draw(self.world, &painter, painter_rect.min.to_vec2(), scale);
-                    self.robot_b1
-                        .draw(self.world, &painter, painter_rect.min.to_vec2(), scale);
-                    self.robot_b2
-                        .draw(self.world, &painter, painter_rect.min.to_vec2(), scale);
-
-                    self.ball
-                        .draw(self.world, &painter, painter_rect.min.to_vec2(), scale)
-                    */
                 });
             });
         });
@@ -154,6 +140,7 @@ impl AppUIContainer {
         );
     }
 
+    //TODO refactor plus joliment
     fn draw_field(&self, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
         let stroke: egui::Stroke = egui::Stroke::new(2.0 * scale, egui::Color32::WHITE);
         painter.rect_filled(
