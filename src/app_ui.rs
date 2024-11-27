@@ -19,7 +19,7 @@ impl AppContainer for NoUIContainer {
 impl Default for NoUIContainer {
     fn default() -> Self {
         NoUIContainer {
-            app: SimulatorApp {},
+            app: SimulatorApp::default(),
         }
     }
 }
