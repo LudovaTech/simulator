@@ -1,5 +1,6 @@
 use crate::{infos, robot::{RobotBuilder, RobotHandler}};
 use crossbeam::channel::Receiver;
+use nalgebra::Vector2;
 use rapier2d::prelude::*;
 use std::collections::HashMap;
 
@@ -41,7 +42,7 @@ impl Default for SimulatorApp {
                 },
                 RobotBuilder{
                     team_name: 'A',
-                    robot_number: 1,
+                    robot_number: 2,
                     initial_position: vector!(50.0, 75.0),
                     friction: infos::ROBOT_FRICTION,
                     mass: infos::ROBOT_MASS,
@@ -49,7 +50,7 @@ impl Default for SimulatorApp {
                 },
                 RobotBuilder{
                     team_name: 'B',
-                    robot_number: 2,
+                    robot_number: 1,
                     initial_position: vector!(50.0, 100.0),
                     friction: infos::ROBOT_FRICTION,
                     mass: infos::ROBOT_MASS,
@@ -153,5 +154,7 @@ impl SimulatorApp {
         //
     }
 
-    pub fn position_of(robot: RobotHandler) {}
+    pub fn position_of(&self, robot_handle: &RobotHandler) -> Vector2<f32>{
+        self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].position().translation.vector
+    }
 }

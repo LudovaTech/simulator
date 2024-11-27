@@ -1,6 +1,8 @@
-use eframe::App;
+use std::collections::HashMap;
 
-use crate::{simulator::SimulatorApp, infos};
+use crate::{
+    infos, robot::RobotHandler, simulator::SimulatorApp, vector_converter::EguiConvertCompatibility,
+};
 
 const BUTTON_PANEL_WIDTH: f32 = 150.0;
 
@@ -26,6 +28,7 @@ impl Default for NoUIContainer {
 
 pub struct AppUIContainer {
     pub simulation: SimulatorApp,
+    pub robot_handle_to_color: HashMap<RobotHandler, egui::Color32>,
 }
 
 impl AppContainer for AppUIContainer {
@@ -42,8 +45,15 @@ impl AppContainer for AppUIContainer {
 
 impl Default for AppUIContainer {
     fn default() -> Self {
+        let simulation = SimulatorApp::default();
+        let mut robot_handle_to_color = HashMap::new();
+        robot_handle_to_color.insert(simulation.robots[0], egui::Color32::YELLOW);
+        robot_handle_to_color.insert(simulation.robots[1], egui::Color32::BLACK);
+        robot_handle_to_color.insert(simulation.robots[2], egui::Color32::RED);
+        robot_handle_to_color.insert(simulation.robots[3], egui::Color32::GREEN);
         AppUIContainer {
-            simulation: SimulatorApp::default(),
+            simulation,
+            robot_handle_to_color,
         }
     }
 }
@@ -108,6 +118,10 @@ impl eframe::App for AppUIContainer {
 
                     self.draw_field(&painter, painter_rect.min.to_vec2(), scale);
 
+                    for robot_handle in self.simulation.robots {
+                        self.draw_robot(robot_handle, &painter, painter_rect.min.to_vec2(), scale);
+                    }
+
                     /*
                     self.robot_a1
                         .draw(self.world, &painter, painter_rect.min.to_vec2(), scale);
@@ -129,6 +143,15 @@ impl eframe::App for AppUIContainer {
 }
 
 impl AppUIContainer {
+    fn draw_robot(&self, robot_handle: RobotHandler, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
+        let pos = self.simulation.position_of(&robot_handle).to_egui_pos2();
+        painter.circle_filled(
+            (pos * scale) + offset,
+            infos::ROBOT_RADIUS * scale, //TODO: doit être hérité et pas être mis en constante
+            self.robot_handle_to_color[&robot_handle],
+        );
+    }
+
     fn draw_field(&self, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
         let stroke: egui::Stroke = egui::Stroke::new(2.0 * scale, egui::Color32::WHITE);
         painter.rect_filled(

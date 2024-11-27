@@ -1,6 +1,6 @@
 use nalgebra::Vector2;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct RobotHandler {
     team_name: char,
     robot_number: u8,
