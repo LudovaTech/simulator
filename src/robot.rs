@@ -21,6 +21,7 @@ pub struct RobotBuilder {
     pub initial_position: Vector2<f32>,
     pub friction: f32,
     pub linear_damping: f32,
+    pub angular_damping: f32,
     pub restitution: f32,
     pub mass: f32,
     pub radius: f32,

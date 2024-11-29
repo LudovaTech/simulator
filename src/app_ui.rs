@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use egui::Pos2;
 use nalgebra::vector;
 
 use crate::{
@@ -143,18 +142,23 @@ impl AppUIContainer {
 
         // dribbler
         let corrected_angle = *self.simulation.rotation_of(&robot_handle);
-        let mid_length = radius_corrected * 60.0 / 100.0;
+        let dribbler_length = radius_corrected * 60.0 / 100.0;
+        let dribbler_width = radius_corrected * 20.0 / 100.0;
 
         painter.line_segment(
             [
-                (nalgebra::Complex::new(-mid_length, -radius_corrected) * corrected_angle)
+                (nalgebra::Complex::new(
+                    -dribbler_length,
+                    -radius_corrected + dribbler_width / 2.0,
+                ) * corrected_angle)
                     .to_egui_pos2()
                     + pos_corrected.to_vec2(),
-                (nalgebra::Complex::new(mid_length, -radius_corrected) * corrected_angle)
+                (nalgebra::Complex::new(dribbler_length, -radius_corrected + dribbler_width / 2.0)
+                    * corrected_angle)
                     .to_egui_pos2()
                     + pos_corrected.to_vec2(),
             ],
-            egui::Stroke::new(radius_corrected * 20.0 / 100.0, egui::Color32::GRAY),
+            egui::Stroke::new(dribbler_width, egui::Color32::GRAY),
         );
     }
 

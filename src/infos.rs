@@ -11,7 +11,8 @@ pub const BORDER_RESTITUTION: f32 = 0.1;
 /// Constantes pour le robot
 pub const ROBOT_RADIUS: f32 = 9.0;
 pub const ROBOT_FRICTION: f32 = 0.0; // Friction lors d'un contact
-pub const ROBOT_DAMPING: f32 = 0.5; // Friction qui s'applique tout le temps comme la résistance de l'air
+pub const ROBOT_LINEAR_DAMPING: f32 = 0.5; // Friction qui s'applique tout le temps comme la résistance de l'air
+pub const ROBOT_ANGULAR_DAMPING: f32 = 0.5; // De même mais pour la rotation
 pub const ROBOT_RESTITUTION: f32 = 0.1; // Elasticité, restitution de la force de collision
 pub const ROBOT_MASS: f32 = 10.0;
 

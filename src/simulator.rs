@@ -39,7 +39,8 @@ impl Default for SimulatorApp {
                 robot_number: 1,
                 initial_position: vector!(50.0, 50.0),
                 friction: infos::ROBOT_FRICTION,
-                linear_damping: infos::ROBOT_DAMPING,
+                linear_damping: infos::ROBOT_LINEAR_DAMPING,
+                angular_damping: infos::ROBOT_ANGULAR_DAMPING,
                 restitution: infos::ROBOT_RESTITUTION,
                 mass: infos::ROBOT_MASS,
                 radius: infos::ROBOT_RADIUS,
@@ -49,7 +50,8 @@ impl Default for SimulatorApp {
                 robot_number: 2,
                 initial_position: vector!(50.0, 75.0),
                 friction: infos::ROBOT_FRICTION,
-                linear_damping: infos::ROBOT_DAMPING,
+                linear_damping: infos::ROBOT_LINEAR_DAMPING,
+                angular_damping: infos::ROBOT_ANGULAR_DAMPING,
                 restitution: infos::ROBOT_RESTITUTION,
                 mass: infos::ROBOT_MASS,
                 radius: infos::ROBOT_RADIUS,
@@ -59,7 +61,8 @@ impl Default for SimulatorApp {
                 robot_number: 1,
                 initial_position: vector!(50.0, 100.0),
                 friction: infos::ROBOT_FRICTION,
-                linear_damping: infos::ROBOT_DAMPING,
+                linear_damping: infos::ROBOT_LINEAR_DAMPING,
+                angular_damping: infos::ROBOT_ANGULAR_DAMPING,
                 restitution: infos::ROBOT_RESTITUTION,
                 mass: infos::ROBOT_MASS,
                 radius: infos::ROBOT_RADIUS,
@@ -69,7 +72,8 @@ impl Default for SimulatorApp {
                 robot_number: 2,
                 initial_position: vector!(50.0, 125.0),
                 friction: infos::ROBOT_FRICTION,
-                linear_damping: infos::ROBOT_DAMPING,
+                linear_damping: infos::ROBOT_LINEAR_DAMPING,
+                angular_damping: infos::ROBOT_ANGULAR_DAMPING,
                 restitution: infos::ROBOT_RESTITUTION,
                 mass: infos::ROBOT_MASS,
                 radius: infos::ROBOT_RADIUS,
@@ -131,6 +135,7 @@ impl SimulatorApp {
     fn create_rigid_body(&mut self, robot_builder: &RobotBuilder) -> RigidBodyHandle {
         let body = RigidBodyBuilder::dynamic()
             .linear_damping(robot_builder.linear_damping)
+            .angular_damping(robot_builder.angular_damping)
             .translation(robot_builder.initial_position)
             .build();
         self.rigid_body_set.insert(body)
