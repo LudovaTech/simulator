@@ -1,4 +1,3 @@
-
 /// Constantes définissant le terrain
 pub const FIELD_WIDTH: f32 = 182.0;
 pub const FIELD_DEPTH: f32 = 243.0;

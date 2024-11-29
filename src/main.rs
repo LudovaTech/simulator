@@ -1,9 +1,9 @@
 use app_ui::AppContainer;
 
-mod simulator;
 mod app_ui;
 mod infos;
 mod robot;
+mod simulator;
 mod vector_converter;
 
 fn main() {
