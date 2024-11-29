@@ -1,25 +1,36 @@
-use nalgebra::{Vector2, Point2};
+use nalgebra::{Point2, Vector2};
 
 pub trait EguiConvertCompatibility {
     fn to_egui_vec2(&self) -> egui::Vec2;
     fn to_egui_pos2(&self) -> egui::Pos2;
 }
 
-
 impl EguiConvertCompatibility for Vector2<f32> {
     fn to_egui_vec2(&self) -> egui::Vec2 {
-        egui::Vec2 { x: self.x, y: self.y}
+        egui::Vec2 {
+            x: self.x,
+            y: self.y,
+        }
     }
     fn to_egui_pos2(&self) -> egui::Pos2 {
-        egui::Pos2 { x: self.x, y: self.y}
+        egui::Pos2 {
+            x: self.x,
+            y: self.y,
+        }
     }
 }
 
 impl EguiConvertCompatibility for Point2<f32> {
     fn to_egui_vec2(&self) -> egui::Vec2 {
-        egui::Vec2 { x: self.x, y: self.y}
+        egui::Vec2 {
+            x: self.x,
+            y: self.y,
+        }
     }
     fn to_egui_pos2(&self) -> egui::Pos2 {
-        egui::Pos2 { x: self.x, y: self.y}
+        egui::Pos2 {
+            x: self.x,
+            y: self.y,
+        }
     }
 }
