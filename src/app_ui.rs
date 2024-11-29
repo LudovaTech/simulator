@@ -13,17 +13,21 @@ pub trait AppContainer: Default {
 }
 
 pub struct NoUIContainer {
-    pub app: SimulatorApp,
+    pub simulation: SimulatorApp,
 }
 
 impl AppContainer for NoUIContainer {
-    fn start(self) {}
+    fn start(mut self) {
+        loop {
+            self.simulation.update();
+        }
+    }
 }
 
 impl Default for NoUIContainer {
     fn default() -> Self {
         NoUIContainer {
-            app: SimulatorApp::default(),
+            simulation: SimulatorApp::default(),
         }
     }
 }
@@ -34,11 +38,6 @@ pub struct AppUIContainer {
 }
 
 impl AppContainer for AppUIContainer {
-    // fn update_frame(&mut self) {
-    //     self.app.update();
-    //     self.update(ctx, frame);
-    // }
-
     fn start(self) {
         let options = eframe::NativeOptions::default();
         let _ = eframe::run_native("Simulator", options, Box::new(|_cc| Box::new(self)));
@@ -61,7 +60,7 @@ impl Default for AppUIContainer {
 }
 
 impl eframe::App for AppUIContainer {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Refresh simulation
         self.simulation.update();
 

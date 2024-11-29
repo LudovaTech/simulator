@@ -7,6 +7,6 @@ mod robot;
 mod vector_converter;
 
 fn main() {
-    let app_container = app_ui::AppUIContainer::default();
+    let app_container = app_ui::NoUIContainer::default();
     app_container.start();
 }
