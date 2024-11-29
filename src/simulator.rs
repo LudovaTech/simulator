@@ -170,15 +170,22 @@ impl SimulatorApp {
             &self.physics_hooks,
             &self.event_handler,
         );
-        println!("step")
         //
     }
 
+    #[inline]
     pub fn position_of(&self, robot_handle: &RobotHandler) -> Vector2<f32> {
         self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]]
             .position()
             .translation
             .vector
+    }
+
+    #[inline]
+    pub fn rotation_of(&self, robot_handle: &RobotHandler) -> nalgebra::Unit<nalgebra::Complex<f32>> {
+        self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]]
+            .rotation()
+            .clone()
     }
 }
 

@@ -7,6 +7,6 @@ mod simulator;
 mod vector_converter;
 
 fn main() {
-    let app_container = app_ui::NoUIContainer::default();
+    let app_container = app_ui::AppUIContainer::default();
     app_container.start();
 }

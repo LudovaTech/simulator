@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use egui::Pos2;
 use nalgebra::vector;
 
 use crate::{
@@ -131,11 +132,29 @@ impl AppUIContainer {
         offset: egui::Vec2,
         scale: f32,
     ) {
-        let pos = self.simulation.position_of(&robot_handle).to_egui_pos2();
+        let pos_corrected =
+            (self.simulation.position_of(&robot_handle).to_egui_pos2() * scale) + offset;
+        let radius_corrected = infos::ROBOT_RADIUS * scale;
         painter.circle_filled(
-            (pos * scale) + offset,
-            infos::ROBOT_RADIUS * scale, //TODO: doit être hérité et pas être mis en constante
+            pos_corrected,
+            radius_corrected, //TODO: doit être hérité et pas être mis en constante
             self.robot_handle_to_color[&robot_handle],
+        );
+
+        // dribbler
+        let corrected_angle = *self.simulation.rotation_of(&robot_handle);
+        let mid_length = radius_corrected * 60.0 / 100.0;
+
+        painter.line_segment(
+            [
+                (nalgebra::Complex::new(-mid_length, -radius_corrected) * corrected_angle)
+                    .to_egui_pos2()
+                    + pos_corrected.to_vec2(),
+                (nalgebra::Complex::new(mid_length, -radius_corrected) * corrected_angle)
+                    .to_egui_pos2()
+                    + pos_corrected.to_vec2(),
+            ],
+            egui::Stroke::new(radius_corrected * 20.0 / 100.0, egui::Color32::GRAY),
         );
     }
 
