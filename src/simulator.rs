@@ -273,6 +273,31 @@ impl SimulatorApp {
                 }
             }
 
+            let try_ball_for_1 = collision_event.collider1() == self.ball_collider_handle;
+            let try_ball_for_2 = collision_event.collider2() == self.ball_collider_handle;
+
+            // Cas ball/robot et ball/mur
+            if try_ball_for_1 {
+                if let Some(robot2) = try_robot_for_2 {
+                    println!("ball touched {}", robot2);
+                    return;
+                }
+                if let Some(wall2) = try_wall_for_2 {
+                    println!("ball touched {:?}", wall2);
+                    return;
+                }
+            }
+            if try_ball_for_2 {
+                if let Some(robot1) = try_robot_for_1 {
+                    println!("ball touched {}", robot1);
+                    return;
+                }
+                if let Some(wall1) = try_wall_for_1 {
+                    println!("ball touched {:?}", wall1);
+                    return;
+                }
+            }
+
             println!("Unknown collision : {:?} with {:?}", collision_event.collider1(), collision_event.collider2());
             dbg!(try_robot_for_1);
             dbg!(try_robot_for_2);
