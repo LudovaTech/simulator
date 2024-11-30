@@ -15,6 +15,12 @@ impl RobotHandler {
     }
 }
 
+impl std::fmt::Display for RobotHandler {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "r{}{}", self.team_name, self.robot_number)
+    }
+}
+
 pub struct RobotBuilder {
     pub team_name: char,
     pub robot_number: u8,
