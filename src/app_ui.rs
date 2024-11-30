@@ -128,15 +128,18 @@ impl eframe::App for AppUIContainer {
                 self.simulation.rigid_body_set
                     [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new('A', 1)]]
                     .apply_impulse(vector![0.0, -100.0], true);
-            } else if i.key_pressed(egui::Key::ArrowDown) {
+            }
+            if i.key_pressed(egui::Key::ArrowDown) {
                 self.simulation.rigid_body_set
                     [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new('A', 1)]]
                     .apply_impulse(vector![0.0, 100.0], true);
-            } else if i.key_pressed(egui::Key::ArrowRight) {
+            }
+            if i.key_pressed(egui::Key::ArrowRight) {
                 self.simulation.rigid_body_set
                     [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new('A', 1)]]
                     .apply_impulse(vector![100.0, 0.0], true);
-            } else if i.key_pressed(egui::Key::ArrowLeft) {
+            }
+            if i.key_pressed(egui::Key::ArrowLeft) {
                 self.simulation.rigid_body_set
                     [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new('A', 1)]]
                     .apply_impulse(vector![-100.0, 0.0], true);
