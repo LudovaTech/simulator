@@ -38,6 +38,8 @@ pub struct SimulatorApp {
     pub collision_recv: Receiver<CollisionEvent>,
     pub contact_force_recv: Receiver<ContactForceEvent>,
     // Simulator :
+    pub ball_rigid_body_handle: RigidBodyHandle,
+    pub ball_collider_handle: ColliderHandle,
     pub robots: [RobotHandler; 4],
     pub robot_to_rigid_body_handle: HashMap<RobotHandler, RigidBodyHandle>,
     pub collider_to_robot_handle: HashMap<ColliderHandle, RobotHandler>,
@@ -124,11 +126,17 @@ impl SimulatorApp {
             collision_recv,
             contact_force_recv,
             // Simulator :
+            ball_rigid_body_handle: RigidBodyHandle::invalid(),
+            ball_collider_handle: ColliderHandle::invalid(),
             robots: robot_handlers,
             robot_to_rigid_body_handle: HashMap::new(),
             collider_to_robot_handle: HashMap::new(),
             collider_to_field_wall: HashMap::new(),
         };
+
+        // Replace the invalid handles of the ball with the true values
+        sim.ball_rigid_body_handle = sim.create_ball_rigid_body();
+        sim.ball_collider_handle = sim.create_ball_collider(sim.ball_rigid_body_handle);
 
         // Construct HashMaps
         for robot_builder in robots_builders {
@@ -169,6 +177,25 @@ impl SimulatorApp {
         self.collider_set
             .insert_with_parent(collider, rigid_body_handle, &mut self.rigid_body_set)
     }
+
+    fn create_ball_rigid_body(&mut self) -> RigidBodyHandle {
+        let body = RigidBodyBuilder::dynamic()
+            .linear_damping(infos::BALL_LINEAR_DAMPING)
+            .angular_damping(infos::BALL_ANGULAR_DAMPING)
+            .translation(Vector2::new(infos::FIELD_DEPTH/2.0, infos::FIELD_WIDTH/2.0))
+            .build();
+        self.rigid_body_set.insert(body)
+    }
+
+    fn create_ball_collider(&mut self, rigid_body_handle: RigidBodyHandle) -> ColliderHandle {
+        let collider = ColliderBuilder::ball(infos::BALL_RADIUS)
+            .active_events(ActiveEvents::COLLISION_EVENTS)
+            .mass(infos::BALL_MASS)
+            .friction(infos::BALL_FRICTION)
+            .restitution(infos::BALL_RESTITUTION)
+            .build();
+        self.collider_set.insert_with_parent(collider, rigid_body_handle, &mut self.rigid_body_set)
+    }
 }
 
 impl SimulatorApp {
@@ -191,6 +218,14 @@ impl SimulatorApp {
         );
         //
         self.process_collisions();
+    }
+
+    #[inline]
+    pub fn position_of_ball(&self) -> Vector2<f32> {
+        self.rigid_body_set[self.ball_rigid_body_handle]
+            .position()
+            .translation
+            .vector
     }
 
     #[inline]

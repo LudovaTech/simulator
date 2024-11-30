@@ -18,3 +18,8 @@ pub const ROBOT_MASS: f32 = 10.0;
 
 /// Constantes pour la balle
 pub const BALL_RADIUS: f32 = 2.0;
+pub const BALL_FRICTION: f32 = 0.0; // Friction lors d'un contact
+pub const BALL_LINEAR_DAMPING: f32 = 0.5; // Friction qui s'applique tout le temps comme la résistance de l'air
+pub const BALL_ANGULAR_DAMPING: f32 = 0.5; // De même mais pour la rotation
+pub const BALL_RESTITUTION: f32 = 0.1; // Elasticité, restitution de la force de collision
+pub const BALL_MASS: f32 = 10.0;

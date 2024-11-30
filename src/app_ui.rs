@@ -108,13 +108,16 @@ impl eframe::App for AppUIContainer {
                     let scale: f32 = (painter_rect.width() / infos::FIELD_DEPTH)
                         .min(painter_rect.height() / infos::FIELD_WIDTH);
 
+                    let offset = painter_rect.min.to_vec2();
+
                     // montre la zone du painter
                     // painter.rect_filled(painter_rect, 0.0, egui::Color32::BLUE);
 
-                    self.draw_field(&painter, painter_rect.min.to_vec2(), scale);
+                    self.draw_field(&painter, offset, scale);
 
+                    self.draw_ball(&painter, offset, scale);
                     for robot_handle in self.simulation.robots {
-                        self.draw_robot(robot_handle, &painter, painter_rect.min.to_vec2(), scale);
+                        self.draw_robot(robot_handle, &painter, offset, scale);
                     }
                 });
             });
@@ -124,6 +127,16 @@ impl eframe::App for AppUIContainer {
 }
 
 impl AppUIContainer {
+    fn draw_ball(&self, painter: &egui::Painter, offset: egui::Vec2, scale: f32) {
+        let pos_corrected = (self.simulation.position_of_ball().to_egui_pos2() * scale) + offset;
+        let radius_corrected = infos::BALL_RADIUS * scale;
+        painter.circle_filled(
+            pos_corrected,
+            radius_corrected, //TODO: doit être hérité et pas être mis en constante
+            egui::Color32::LIGHT_RED,
+        );
+    }
+
     fn draw_robot(
         &self,
         robot_handle: RobotHandler,
