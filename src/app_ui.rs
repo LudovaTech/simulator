@@ -72,7 +72,7 @@ impl eframe::App for AppUIContainer {
                 //buttons panel
                 ui.vertical(|ui| {
                     ui.set_width(BUTTON_PANEL_WIDTH);
-                    
+
                     ui.add(egui::Label::new(
                         egui::RichText::new(format!(
                             "{} : {}",

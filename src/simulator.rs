@@ -3,6 +3,7 @@ use crate::{
     infos,
     robot::{RobotBuilder, RobotHandler},
 };
+use core::f32;
 use crossbeam::channel::Receiver;
 use nalgebra::Vector2;
 use rapier2d::prelude::*;
@@ -152,6 +153,7 @@ impl SimulatorApp {
         }
 
         sim.build_field_colliders();
+        sim.new_round();
         sim
     }
 }
@@ -350,7 +352,46 @@ impl SimulatorApp {
     }
 
     pub fn new_round(&mut self) {
-        println!("NEW ROUND");
+        let center: Vector2<f32> = Vector2::new(infos::FIELD_DEPTH/2.0, infos::FIELD_WIDTH/2.0);
+
+        SimulatorApp::reset_rigid_body(
+            &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[0]]],
+            f32::consts::FRAC_PI_2,
+            center - Vector2::new(30.0, 30.0)
+        );
+
+        SimulatorApp::reset_rigid_body(
+            &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[1]]],
+            f32::consts::FRAC_PI_2,
+            center - Vector2::new(30.0, -30.0)
+        );
+
+        SimulatorApp::reset_rigid_body(
+            &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[2]]],
+            3.0 * f32::consts::FRAC_PI_2,
+            center + Vector2::new(30.0, 30.0)
+        );
+
+        SimulatorApp::reset_rigid_body(
+            &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[3]]],
+            3.0 * f32::consts::FRAC_PI_2,
+            center + Vector2::new(30.0, -30.0)
+        );
+
+        // ball
+        SimulatorApp::reset_rigid_body(
+            &mut self.rigid_body_set[self.ball_rigid_body_handle],
+            0.0,
+            center,
+        );
+    }
+
+    #[inline]
+    fn reset_rigid_body(rigid_body: &mut RigidBody, angle:f32, translation: Vector2<f32>) {
+        (*rigid_body).set_linvel(Vector2::new(0.0, 0.0), true);
+        (*rigid_body).set_angvel(0.0, true);
+        (*rigid_body).set_rotation(nalgebra::UnitComplex::new(angle), true);
+        (*rigid_body).set_translation(translation, true);
     }
 
     // TODO refactor plus joliment
