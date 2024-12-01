@@ -20,7 +20,7 @@ pub struct GameReferee {
 impl GameReferee {
     pub fn maybe_goal(&mut self, position_of_ball: &Vector2<f32>, wall: &FieldWallKind) -> RefereeAction {
         // On considére que le fait que la balle a touché le mur du fond
-        // a déjà été vérifié (dans process_collisions)
+        // car cela a déjà été vérifié (dans process_collisions)
         // On ne vérifie donc que la position y de la balle
         if (((infos::FIELD_WIDTH / 2.0) - (infos::GOAL_WIDTH / 2.0))
             ..(infos::FIELD_WIDTH / 2.0) + (infos::GOAL_WIDTH / 2.0))
