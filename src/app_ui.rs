@@ -40,7 +40,7 @@ pub struct AppUIContainer {
 impl AppContainer for AppUIContainer {
     fn start(self) {
         let options = eframe::NativeOptions::default();
-        let _ = eframe::run_native("Simulator", options, Box::new(|_cc| Box::new(self)));
+        let _ = eframe::run_native("Simulator", options, Box::new(|_cc| Ok(Box::new(self))));
     }
 }
 
@@ -72,6 +72,17 @@ impl eframe::App for AppUIContainer {
                 //buttons panel
                 ui.vertical(|ui| {
                     ui.set_width(BUTTON_PANEL_WIDTH);
+                    
+                    ui.add(egui::Label::new(
+                        egui::RichText::new(format!(
+                            "{} : {}",
+                            self.simulation.game_referee.score_team_left,
+                            self.simulation.game_referee.score_team_right
+                        ))
+                        .size(60.0),
+                    ));
+
+                    ui.add_space(10.0);
 
                     if ui.button("Move Robot A1 Right").clicked() {
                         self.simulation.rigid_body_set[self.simulation.robot_to_rigid_body_handle

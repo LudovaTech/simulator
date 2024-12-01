@@ -1,6 +1,7 @@
 use app_ui::AppContainer;
 
 mod app_ui;
+mod game_referee;
 mod infos;
 mod robot;
 mod simulator;

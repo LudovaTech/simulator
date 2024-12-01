@@ -8,7 +8,7 @@ use nalgebra::Vector2;
 use rapier2d::prelude::*;
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum FieldWallKind {
     Top,
     Bottom,
@@ -246,10 +246,18 @@ impl SimulatorApp {
             .clone()
     }
 
-    pub fn process_collisions(&self) {
+}
+
+impl SimulatorApp {
+    fn process_collisions(&mut self) {
+        //TODO remove this function
         while let Ok(collision_event) = self.collision_recv.try_recv() {
-            let try_robot_for_1 = self.collider_to_robot_handle.get(&collision_event.collider1());
-            let try_robot_for_2 = self.collider_to_robot_handle.get(&collision_event.collider2());
+            let try_robot_for_1 = self
+                .collider_to_robot_handle
+                .get(&collision_event.collider1());
+            let try_robot_for_2 = self
+                .collider_to_robot_handle
+                .get(&collision_event.collider2());
 
             // Cas entre deux robots
             if let Some(robot1) = try_robot_for_1 {
@@ -259,8 +267,12 @@ impl SimulatorApp {
                 }
             }
 
-            let try_wall_for_1 = self.collider_to_field_wall.get(&collision_event.collider1());
-            let try_wall_for_2 = self.collider_to_field_wall.get(&collision_event.collider2());
+            let try_wall_for_1 = self
+                .collider_to_field_wall
+                .get(&collision_event.collider1());
+            let try_wall_for_2 = self
+                .collider_to_field_wall
+                .get(&collision_event.collider2());
 
             // Cas entre un robot et un mur
             if let Some(robot1) = try_robot_for_1 {
@@ -287,6 +299,9 @@ impl SimulatorApp {
                 }
                 if let Some(wall2) = try_wall_for_2 {
                     println!("ball touched {:?}", wall2);
+                    if *wall2 == FieldWallKind::Left || *wall2 == FieldWallKind::Right {
+                        self.game_referee.maybe_goal(&self.position_of_ball(), wall2);
+                    }
                     return;
                 }
             }
@@ -297,11 +312,18 @@ impl SimulatorApp {
                 }
                 if let Some(wall1) = try_wall_for_1 {
                     println!("ball touched {:?}", wall1);
+                    if *wall1 == FieldWallKind::Left || *wall1 == FieldWallKind::Right {
+                        self.game_referee.maybe_goal(&self.position_of_ball(), wall1);
+                    }
                     return;
                 }
             }
 
-            println!("Unknown collision : {:?} with {:?}", collision_event.collider1(), collision_event.collider2());
+            println!(
+                "Unknown collision : {:?} with {:?}",
+                collision_event.collider1(),
+                collision_event.collider2()
+            );
             dbg!(try_robot_for_1);
             dbg!(try_robot_for_2);
             dbg!(try_wall_for_1);
@@ -309,9 +331,6 @@ impl SimulatorApp {
         }
     }
 
-}
-
-impl SimulatorApp {
     // TODO refactor plus joliment
     fn build_field_colliders(&mut self) {
         let up = ColliderBuilder::cuboid(infos::FIELD_DEPTH, 1.0)
