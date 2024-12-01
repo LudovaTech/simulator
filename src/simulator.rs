@@ -1,6 +1,7 @@
 use crate::{
     infos,
     robot::{RobotBuilder, RobotHandler},
+    game_referee::GameReferee,
 };
 use crossbeam::channel::Receiver;
 use nalgebra::Vector2;
@@ -9,14 +10,14 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub enum FieldWallKind {
-    top,
-    bottom,
-    left,
-    right,
-    goal_left_up,
-    goal_left_down,
-    goal_right_up,
-    goal_right_down,
+    Top,
+    Bottom,
+    Left,
+    Right,
+    GoalLeftUp,
+    GoalLeftDown,
+    GoalRightUp,
+    GoalRightDown,
 }
 
 pub struct SimulatorApp {
@@ -38,6 +39,7 @@ pub struct SimulatorApp {
     pub collision_recv: Receiver<CollisionEvent>,
     pub contact_force_recv: Receiver<ContactForceEvent>,
     // Simulator :
+    pub game_referee: GameReferee,
     pub ball_rigid_body_handle: RigidBodyHandle,
     pub ball_collider_handle: ColliderHandle,
     pub robots: [RobotHandler; 4],
@@ -126,6 +128,7 @@ impl SimulatorApp {
             collision_recv,
             contact_force_recv,
             // Simulator :
+            game_referee: GameReferee::default(),
             ball_rigid_body_handle: RigidBodyHandle::invalid(),
             ball_collider_handle: ColliderHandle::invalid(),
             robots: robot_handlers,
@@ -315,27 +318,27 @@ impl SimulatorApp {
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(up);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::top);
+        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::Top);
 
         let bottom = ColliderBuilder::cuboid(infos::FIELD_DEPTH, 1.0)
             .translation(vector![0.0, infos::FIELD_WIDTH])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(bottom);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::bottom);
+        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::Bottom);
 
         let left = ColliderBuilder::cuboid(1.0, infos::FIELD_WIDTH)
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(left);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::left);
+        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::Left);
 
         let right = ColliderBuilder::cuboid(1.0, infos::FIELD_WIDTH)
             .translation(vector![infos::FIELD_DEPTH, 0.0])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(right);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::right);
+        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::Right);
 
         let goal_left_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
             .translation(vector![
@@ -345,7 +348,7 @@ impl SimulatorApp {
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(goal_left_up);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::goal_left_up);
+        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::GoalLeftUp);
 
         let goal_left_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
             .translation(vector![
@@ -355,7 +358,7 @@ impl SimulatorApp {
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(goal_left_down);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::goal_left_down);
+        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::GoalLeftDown);
 
         let goal_right_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
             .translation(vector![
@@ -365,7 +368,7 @@ impl SimulatorApp {
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(goal_right_up);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::goal_right_up);
+        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::GoalRightUp);
 
         let goal_right_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
             .translation(vector![
@@ -375,6 +378,6 @@ impl SimulatorApp {
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(goal_right_down);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::goal_right_down);
+        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::GoalRightDown);
     }
 }
