@@ -8,6 +8,10 @@ pub const ENBUT_WIDTH: f32 = 75.0;
 pub const ENBUT_RADIUS: f32 = 10.0;
 pub const BORDER_RESTITUTION: f32 = 0.1;
 
+// Positions pour le départ
+pub const START_POS_ALIGNED_X: f32 = 40.0;
+pub const START_POS_ALIGNED_Y: f32 = 20.0;
+
 /// Constantes pour le robot
 pub const ROBOT_RADIUS: f32 = 9.0;
 pub const ROBOT_FRICTION: f32 = 0.0; // Friction lors d'un contact

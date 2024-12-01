@@ -362,25 +362,25 @@ impl SimulatorApp {
         SimulatorApp::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[0]]],
             f32::consts::FRAC_PI_2,
-            center - Vector2::new(30.0, 30.0)
+            center - Vector2::new(infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y)
         );
 
         SimulatorApp::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[1]]],
             f32::consts::FRAC_PI_2,
-            center - Vector2::new(30.0, -30.0)
+            center - Vector2::new(infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y)
         );
 
         SimulatorApp::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[2]]],
             3.0 * f32::consts::FRAC_PI_2,
-            center + Vector2::new(30.0, 30.0)
+            center + Vector2::new(infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y)
         );
 
         SimulatorApp::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[3]]],
             3.0 * f32::consts::FRAC_PI_2,
-            center + Vector2::new(30.0, -30.0)
+            center + Vector2::new(infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y)
         );
 
         // ball
