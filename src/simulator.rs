@@ -1,7 +1,7 @@
 use crate::{
+    game_referee::{GameReferee, RefereeAction},
     infos,
     robot::{RobotBuilder, RobotHandler},
-    game_referee::GameReferee,
 };
 use crossbeam::channel::Receiver;
 use nalgebra::Vector2;
@@ -185,7 +185,10 @@ impl SimulatorApp {
         let body = RigidBodyBuilder::dynamic()
             .linear_damping(infos::BALL_LINEAR_DAMPING)
             .angular_damping(infos::BALL_ANGULAR_DAMPING)
-            .translation(Vector2::new(infos::FIELD_DEPTH/2.0, infos::FIELD_WIDTH/2.0))
+            .translation(Vector2::new(
+                infos::FIELD_DEPTH / 2.0,
+                infos::FIELD_WIDTH / 2.0,
+            ))
             .build();
         self.rigid_body_set.insert(body)
     }
@@ -197,7 +200,8 @@ impl SimulatorApp {
             .friction(infos::BALL_FRICTION)
             .restitution(infos::BALL_RESTITUTION)
             .build();
-        self.collider_set.insert_with_parent(collider, rigid_body_handle, &mut self.rigid_body_set)
+        self.collider_set
+            .insert_with_parent(collider, rigid_body_handle, &mut self.rigid_body_set)
     }
 }
 
@@ -220,7 +224,15 @@ impl SimulatorApp {
             &self.event_handler,
         );
         //
-        self.process_collisions();
+        let mut referee_actions: Vec<RefereeAction> = Vec::new();
+        while let Ok(collision_event) = self.collision_recv.try_recv() {
+            if let Some(referee_action) = self.process_collision(collision_event) {
+                referee_actions.push(referee_action);
+            }
+        }
+        if referee_actions.contains(&RefereeAction::NewRound) {
+            self.new_round();
+        }
     }
 
     #[inline]
@@ -240,95 +252,105 @@ impl SimulatorApp {
     }
 
     #[inline]
-    pub fn rotation_of(&self, robot_handle: &RobotHandler) -> nalgebra::Unit<nalgebra::Complex<f32>> {
+    pub fn rotation_of(
+        &self,
+        robot_handle: &RobotHandler,
+    ) -> nalgebra::Unit<nalgebra::Complex<f32>> {
         self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]]
             .rotation()
             .clone()
     }
-
 }
 
 impl SimulatorApp {
-    fn process_collisions(&mut self) {
-        //TODO remove this function
-        while let Ok(collision_event) = self.collision_recv.try_recv() {
-            let try_robot_for_1 = self
-                .collider_to_robot_handle
-                .get(&collision_event.collider1());
-            let try_robot_for_2 = self
-                .collider_to_robot_handle
-                .get(&collision_event.collider2());
+    fn process_collision(&mut self, collision_event: CollisionEvent) -> Option<RefereeAction> {
+        let try_robot_for_1 = self
+            .collider_to_robot_handle
+            .get(&collision_event.collider1());
+        let try_robot_for_2 = self
+            .collider_to_robot_handle
+            .get(&collision_event.collider2());
 
-            // Cas entre deux robots
-            if let Some(robot1) = try_robot_for_1 {
-                if let Some(robot2) = try_robot_for_2 {
-                    println!("{} touched {}", robot1, robot2);
-                    return;
-                }
-            }
-
-            let try_wall_for_1 = self
-                .collider_to_field_wall
-                .get(&collision_event.collider1());
-            let try_wall_for_2 = self
-                .collider_to_field_wall
-                .get(&collision_event.collider2());
-
-            // Cas entre un robot et un mur
-            if let Some(robot1) = try_robot_for_1 {
-                if let Some(wall2) = try_wall_for_2 {
-                    println!("{} touched {:?}", robot1, wall2);
-                    return;
-                }
-            }
+        // Cas entre deux robots
+        if let Some(robot1) = try_robot_for_1 {
             if let Some(robot2) = try_robot_for_2 {
-                if let Some(wall1) = try_wall_for_1 {
-                    println!("{} touched {:?}", robot2, wall1);
-                    return;
-                }
+                println!("{} touched {}", robot1, robot2);
+                return None;
             }
-
-            let try_ball_for_1 = collision_event.collider1() == self.ball_collider_handle;
-            let try_ball_for_2 = collision_event.collider2() == self.ball_collider_handle;
-
-            // Cas ball/robot et ball/mur
-            if try_ball_for_1 {
-                if let Some(robot2) = try_robot_for_2 {
-                    println!("ball touched {}", robot2);
-                    return;
-                }
-                if let Some(wall2) = try_wall_for_2 {
-                    println!("ball touched {:?}", wall2);
-                    if *wall2 == FieldWallKind::Left || *wall2 == FieldWallKind::Right {
-                        self.game_referee.maybe_goal(&self.position_of_ball(), wall2);
-                    }
-                    return;
-                }
-            }
-            if try_ball_for_2 {
-                if let Some(robot1) = try_robot_for_1 {
-                    println!("ball touched {}", robot1);
-                    return;
-                }
-                if let Some(wall1) = try_wall_for_1 {
-                    println!("ball touched {:?}", wall1);
-                    if *wall1 == FieldWallKind::Left || *wall1 == FieldWallKind::Right {
-                        self.game_referee.maybe_goal(&self.position_of_ball(), wall1);
-                    }
-                    return;
-                }
-            }
-
-            println!(
-                "Unknown collision : {:?} with {:?}",
-                collision_event.collider1(),
-                collision_event.collider2()
-            );
-            dbg!(try_robot_for_1);
-            dbg!(try_robot_for_2);
-            dbg!(try_wall_for_1);
-            dbg!(try_wall_for_2);
         }
+
+        let try_wall_for_1 = self
+            .collider_to_field_wall
+            .get(&collision_event.collider1());
+        let try_wall_for_2 = self
+            .collider_to_field_wall
+            .get(&collision_event.collider2());
+
+        // Cas entre un robot et un mur
+        if let Some(robot1) = try_robot_for_1 {
+            if let Some(wall2) = try_wall_for_2 {
+                println!("{} touched {:?}", robot1, wall2);
+                return None;
+            }
+        }
+        if let Some(robot2) = try_robot_for_2 {
+            if let Some(wall1) = try_wall_for_1 {
+                println!("{} touched {:?}", robot2, wall1);
+                return None;
+            }
+        }
+
+        let try_ball_for_1 = collision_event.collider1() == self.ball_collider_handle;
+        let try_ball_for_2 = collision_event.collider2() == self.ball_collider_handle;
+
+        // Cas ball/robot et ball/mur
+        if try_ball_for_1 {
+            if let Some(robot2) = try_robot_for_2 {
+                println!("ball touched {}", robot2);
+                return None;
+            }
+            if let Some(wall2) = try_wall_for_2 {
+                println!("ball touched {:?}", wall2);
+                if *wall2 == FieldWallKind::Left || *wall2 == FieldWallKind::Right {
+                    return Some(
+                        self.game_referee
+                            .maybe_goal(&self.position_of_ball(), wall2),
+                    );
+                }
+                return None;
+            }
+        }
+        if try_ball_for_2 {
+            if let Some(robot1) = try_robot_for_1 {
+                println!("ball touched {}", robot1);
+                return None;
+            }
+            if let Some(wall1) = try_wall_for_1 {
+                println!("ball touched {:?}", wall1);
+                if *wall1 == FieldWallKind::Left || *wall1 == FieldWallKind::Right {
+                    return Some(
+                        self.game_referee
+                            .maybe_goal(&self.position_of_ball(), wall1),
+                    );
+                }
+                return None;
+            }
+        }
+
+        println!(
+            "Unknown collision : {:?} with {:?}",
+            collision_event.collider1(),
+            collision_event.collider2()
+        );
+        dbg!(try_robot_for_1);
+        dbg!(try_robot_for_2);
+        dbg!(try_wall_for_1);
+        dbg!(try_wall_for_2);
+        return None;
+    }
+
+    pub fn new_round(&mut self) {
+        println!("NEW ROUND");
     }
 
     // TODO refactor plus joliment
@@ -337,27 +359,31 @@ impl SimulatorApp {
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(up);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::Top);
+        self.collider_to_field_wall
+            .insert(collider_handle, FieldWallKind::Top);
 
         let bottom = ColliderBuilder::cuboid(infos::FIELD_DEPTH, 1.0)
             .translation(vector![0.0, infos::FIELD_WIDTH])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(bottom);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::Bottom);
+        self.collider_to_field_wall
+            .insert(collider_handle, FieldWallKind::Bottom);
 
         let left = ColliderBuilder::cuboid(1.0, infos::FIELD_WIDTH)
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(left);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::Left);
+        self.collider_to_field_wall
+            .insert(collider_handle, FieldWallKind::Left);
 
         let right = ColliderBuilder::cuboid(1.0, infos::FIELD_WIDTH)
             .translation(vector![infos::FIELD_DEPTH, 0.0])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(right);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::Right);
+        self.collider_to_field_wall
+            .insert(collider_handle, FieldWallKind::Right);
 
         let goal_left_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
             .translation(vector![
@@ -367,7 +393,8 @@ impl SimulatorApp {
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(goal_left_up);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::GoalLeftUp);
+        self.collider_to_field_wall
+            .insert(collider_handle, FieldWallKind::GoalLeftUp);
 
         let goal_left_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
             .translation(vector![
@@ -377,7 +404,8 @@ impl SimulatorApp {
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(goal_left_down);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::GoalLeftDown);
+        self.collider_to_field_wall
+            .insert(collider_handle, FieldWallKind::GoalLeftDown);
 
         let goal_right_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
             .translation(vector![
@@ -387,7 +415,8 @@ impl SimulatorApp {
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(goal_right_up);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::GoalRightUp);
+        self.collider_to_field_wall
+            .insert(collider_handle, FieldWallKind::GoalRightUp);
 
         let goal_right_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
             .translation(vector![
@@ -397,6 +426,7 @@ impl SimulatorApp {
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(goal_right_down);
-        self.collider_to_field_wall.insert(collider_handle, FieldWallKind::GoalRightDown);
+        self.collider_to_field_wall
+            .insert(collider_handle, FieldWallKind::GoalRightDown);
     }
 }
