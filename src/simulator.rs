@@ -266,6 +266,11 @@ impl SimulatorApp {
 
 impl SimulatorApp {
     fn process_collision(&mut self, collision_event: CollisionEvent) -> Option<RefereeAction> {
+        //On ne considère que les collisions qui commencent _pour l'instant_
+        if collision_event.stopped() {
+            return None;
+        }
+        
         let try_robot_for_1 = self
             .collider_to_robot_handle
             .get(&collision_event.collider1());
