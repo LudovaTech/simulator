@@ -208,7 +208,7 @@ impl SimulatorApp {
 }
 
 impl SimulatorApp {
-    pub fn update(&mut self) {
+    pub fn tick(&mut self) {
         // physic step
         self.physics_pipeline.step(
             &self.gravity,

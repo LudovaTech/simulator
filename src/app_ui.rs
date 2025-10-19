@@ -1,6 +1,9 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use nalgebra::vector;
+use rerun::{DynamicArchetype, EntityPath, Points2D, Radius, TextLog};
+use rerun::AsComponents;
 
 use crate::{
     infos, robot::RobotHandler, simulator::SimulatorApp, vector_converter::EguiConvertCompatibility,
@@ -12,6 +15,26 @@ pub trait AppContainer: Default {
     fn start(self);
 }
 
+#[derive(Default)]
+pub struct RerunContainer {
+    pub simulation: SimulatorApp,
+}
+
+impl AppContainer for RerunContainer {
+    fn start(mut self) {
+        let rec = rerun::RecordingStreamBuilder::new("simulator").spawn().unwrap();
+        rec.log("simulator_messages", &TextLog::new("hello")).unwrap();
+        self.simulation.rigid_body_set[self.simulation.ball_rigid_body_handle]
+                            .apply_impulse(vector![-100.0, 0.0], true);
+        loop {
+            self.simulation.tick();
+            // draw ball
+            let ball_position = self.simulation.position_of_ball();
+            rec.log("ball", &Points2D::new([[ball_position.x, ball_position.y]])).unwrap();
+        }
+    }
+}
+
 pub struct NoUIContainer {
     pub simulation: SimulatorApp,
 }
@@ -19,7 +42,7 @@ pub struct NoUIContainer {
 impl AppContainer for NoUIContainer {
     fn start(mut self) {
         loop {
-            self.simulation.update();
+            self.simulation.tick();
         }
     }
 }
@@ -62,7 +85,7 @@ impl Default for AppUIContainer {
 impl eframe::App for AppUIContainer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Refresh simulation
-        self.simulation.update();
+        self.simulation.tick();
 
         // Building UI :
         egui::CentralPanel::default().show(ctx, |ui| {
