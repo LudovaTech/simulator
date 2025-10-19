@@ -110,11 +110,9 @@ impl RerunContainer {
     fn draw_field(&self) {
         // Field rect (filled green)
         let field_rect =
-            Boxes2D::from_mins_and_sizes([[0.0, 0.0]], [[infos::FIELD_DEPTH, infos::FIELD_WIDTH]]).with_colors([Color::from_rgb(0, 255, 0)]);
-        self.rec.log(
-            "field",
-            &field_rect
-        ).unwrap();
+            Boxes2D::from_mins_and_sizes([[0.0, 0.0]], [[infos::FIELD_DEPTH, infos::FIELD_WIDTH]])
+                .with_colors([Color::from_rgb(0, 255, 0)]);
+        self.rec.log("field", &field_rect).unwrap();
 
         // Inner boundary lines (white)
         let top_left = [infos::SPACE_BEFORE_LINE_SIDE, infos::SPACE_BEFORE_LINE_SIDE];
@@ -131,10 +129,18 @@ impl RerunContainer {
             (infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE),
         ];
 
-        self.rec.log(
-            "field/boundaries",
-            &[LineStrips2D::new([[top_left, top_right, bot_right, bot_left]])],
-        ).unwrap();
+        self.rec
+            .log(
+                "field/boundaries",
+                &[Boxes2D::from_mins_and_sizes(
+                    [[infos::SPACE_BEFORE_LINE_SIDE, infos::SPACE_BEFORE_LINE_SIDE]],
+                    [[
+                        infos::FIELD_DEPTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
+                        infos::FIELD_WIDTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
+                    ]],
+                )],
+            )
+            .unwrap();
 
         // // Left enbut (rounded rectangle outline) - positioned just inside left inner line
         // let left_en_x = infos::SPACE_BEFORE_LINE_SIDE;
