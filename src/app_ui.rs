@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use nalgebra::vector;
-use rerun::{DynamicArchetype, EntityPath, Points2D, Radius, TextLog};
-use rerun::AsComponents;
+use rerun::{AsComponents, Boxes2D, LineStrip2D, LineStrips2D, RecordingStream};
+use rerun::{Color, DynamicArchetype, EntityPath, Points2D, Radius, TextLog};
 
 use crate::{
     infos, robot::RobotHandler, simulator::SimulatorApp, vector_converter::EguiConvertCompatibility,
@@ -15,23 +15,94 @@ pub trait AppContainer: Default {
     fn start(self);
 }
 
-#[derive(Default)]
 pub struct RerunContainer {
     pub simulation: SimulatorApp,
+    pub rec: RecordingStream,
+    pub robot_handle_to_color: HashMap<RobotHandler, Color>,
+}
+
+impl Default for RerunContainer {
+    fn default() -> Self {
+        let simulation = SimulatorApp::default();
+        let mut robot_handle_to_color = HashMap::new();
+        robot_handle_to_color.insert(simulation.robots[0], Color::from_rgb(0, 0, 255));
+        robot_handle_to_color.insert(simulation.robots[1], Color::from_rgb(255, 255, 255));
+        robot_handle_to_color.insert(simulation.robots[2], Color::from_rgb(255, 0, 0));
+        robot_handle_to_color.insert(simulation.robots[3], Color::from_rgb(0, 255, 0));
+        let rec = rerun::RecordingStreamBuilder::new("simulator")
+            .spawn()
+            .unwrap();
+        RerunContainer {
+            simulation,
+            rec,
+            robot_handle_to_color,
+        }
+    }
 }
 
 impl AppContainer for RerunContainer {
     fn start(mut self) {
-        let rec = rerun::RecordingStreamBuilder::new("simulator").spawn().unwrap();
-        rec.log("simulator_messages", &TextLog::new("hello")).unwrap();
+        self.rec
+            .log("simulator_messages", &TextLog::new("hello"))
+            .unwrap();
         self.simulation.rigid_body_set[self.simulation.ball_rigid_body_handle]
-                            .apply_impulse(vector![-100.0, 0.0], true);
+            .apply_impulse(vector![-100.0, 0.0], true);
         loop {
             self.simulation.tick();
             // draw ball
             let ball_position = self.simulation.position_of_ball();
-            rec.log("ball", &Points2D::new([[ball_position.x, ball_position.y]])).unwrap();
+            self.rec
+                .log(
+                    "ball",
+                    &Points2D::new([[ball_position.x, ball_position.y]])
+                        .with_colors([Color::from_rgb(255, 128, 0)])
+                        .with_radii([Radius::new_scene_units(infos::BALL_RADIUS)]),
+                )
+                .unwrap();
+            for robot_handle in self.simulation.robots {
+                self.draw_robot(&robot_handle);
+            }
         }
+    }
+}
+
+impl RerunContainer {
+    fn draw_robot(&self, robot_handle: &RobotHandler) {
+        let robot_position = self.simulation.position_of(&robot_handle);
+        let robot_position = [robot_position.x, robot_position.y];
+        self.rec
+            .log(
+                format!("Robot_{robot_handle}/structure"),
+                &Points2D::new([robot_position])
+                    .with_colors([self.robot_handle_to_color[&robot_handle]])
+                    .with_radii([Radius::new_scene_units(infos::ROBOT_RADIUS)]),
+            )
+            .unwrap();
+
+        // dribbler
+        let robot_angle = *self.simulation.rotation_of(&robot_handle);
+        let dribbler_length = infos::ROBOT_RADIUS * 60.0 / 100.0;
+        let dribbler_width = infos::ROBOT_RADIUS * 20.0 / 100.0;
+
+        let p1 = nalgebra::Complex::new(
+            -dribbler_length,
+            -infos::ROBOT_RADIUS + dribbler_width / 2.0,
+        ) * robot_angle;
+        let p1 = [p1.re + robot_position[0], p1.im + robot_position[1]];
+
+        let p2 =
+            nalgebra::Complex::new(dribbler_length, -infos::ROBOT_RADIUS + dribbler_width / 2.0)
+                * robot_angle;
+        let p2 = [p2.re + robot_position[0], p2.im + robot_position[1]];
+
+        self.rec
+            .log(
+                format!("Robot_{robot_handle}/dribbler"),
+                &LineStrips2D::new([[p1, p2]])
+                    .with_radii([Radius::new_scene_units(dribbler_width)])
+                    .with_draw_order(60.0),
+            )
+            .unwrap();
     }
 }
 
