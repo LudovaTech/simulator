@@ -47,6 +47,8 @@ impl AppContainer for RerunContainer {
             .unwrap();
         self.simulation.rigid_body_set[self.simulation.ball_rigid_body_handle]
             .apply_impulse(vector![-100.0, 0.0], true);
+
+        self.draw_field();
         loop {
             self.simulation.tick();
             // draw ball
@@ -103,6 +105,92 @@ impl RerunContainer {
                     .with_draw_order(60.0),
             )
             .unwrap();
+    }
+
+    fn draw_field(&self) {
+        // Field rect (filled green)
+        let field_rect =
+            Boxes2D::from_mins_and_sizes([[0.0, 0.0]], [[infos::FIELD_DEPTH, infos::FIELD_WIDTH]]).with_colors([Color::from_rgb(0, 255, 0)]);
+        self.rec.log(
+            "field",
+            &field_rect
+        ).unwrap();
+
+        // Inner boundary lines (white)
+        let top_left = [infos::SPACE_BEFORE_LINE_SIDE, infos::SPACE_BEFORE_LINE_SIDE];
+        let top_right = [
+            (infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE),
+            infos::SPACE_BEFORE_LINE_SIDE,
+        ];
+        let bot_left = [
+            infos::SPACE_BEFORE_LINE_SIDE,
+            (infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE),
+        ];
+        let bot_right = [
+            (infos::FIELD_DEPTH - infos::SPACE_BEFORE_LINE_SIDE),
+            (infos::FIELD_WIDTH - infos::SPACE_BEFORE_LINE_SIDE),
+        ];
+
+        self.rec.log(
+            "field/boundaries",
+            &[LineStrips2D::new([[top_left, top_right, bot_right, bot_left]])],
+        ).unwrap();
+
+        // // Left enbut (rounded rectangle outline) - positioned just inside left inner line
+        // let left_en_x = infos::SPACE_BEFORE_LINE_SIDE;
+        // let left_en_y = ((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) / 2.0);
+        // let left_infos::ENBUT_RADIUSect = Rect2D::from_min_size(
+        //     [left_en_x, left_en_y],
+        //     [infos::ENBUT_DEPTH, infos::ENBUT_WIDTH],
+        // );
+        // self.rec.log_rounded_rect_outline(
+        //     &format!("{}/enbut/left", entity_path),
+        //     &left_infos::ENBUT_RADIUSect,
+        //     infos::ENBUT_RADIUS,
+        //     stroke_w,
+        //     [1.0, 1.0, 1.0, 1.0],
+        //     // rounding mask: emulate only right corners rounded by giving corner radii individually if API supports it.
+        // );
+
+        // // Right enbut (rounded rectangle outline)
+        // let right_en_x = (infos::FIELD_DEPTH - infos::ENBUT_DEPTH - infos::SPACE_BEFORE_LINE_SIDE);
+        // let right_en_y = left_en_y; // vertically centered same as left
+        // let right_infos::ENBUT_RADIUSect = Rect2D::from_min_size(
+        //     [right_en_x, right_en_y],
+        //     [infos::ENBUT_DEPTH, infos::ENBUT_WIDTH],
+        // );
+        // self.rec.log_rounded_rect_outline(
+        //     &format!("{}/enbut/right", entity_path),
+        //     &right_infos::ENBUT_RADIUSect,
+        //     infos::ENBUT_RADIUS,
+        //     2.0,
+        //     [1.0, 1.0, 1.0, 1.0],
+        // );
+
+        // // Goal sizes: x thickness = (SPACE_BEFORE_LINE_SIDE * scale) - stroke.width/2
+        // let goal_thickness = (infos::SPACE_BEFORE_LINE_SIDE * scale) - stroke_w / 2.0;
+        // let goal_size = [goal_thickness, infos::GOAL_WIDTH];
+
+        // // Left goal (yellow) at field left edge, vertically centered
+        // let left_goal_pos = [ox, ((infos::FIELD_WIDTH - infos::GOAL_WIDTH) / 2.0)];
+        // let left_goal_rect = Rect2D::from_min_size(left_goal_pos, goal_size);
+        // self.rec.log_rect(
+        //     &format!("{}/goal/left", entity_path),
+        //     &left_goal_rect,
+        //     comp::Mesh::SolidColor([1.0, 1.0, 0.0, 1.0]), // yellow
+        // );
+
+        // // Right goal (blue)
+        // let right_goal_pos = [
+        //     infos::FIELD_DEPTH - goal_thickness,
+        //     ((infos::FIELD_WIDTH - infos::GOAL_WIDTH) / 2.0),
+        // ];
+        // let right_goal_rect = Rect2D::from_min_size(right_goal_pos, goal_size);
+        // self.rec.log_rect(
+        //     &format!("{}/goal/right", entity_path),
+        //     &right_goal_rect,
+        //     comp::Mesh::SolidColor([0.0, 0.0, 1.0, 1.0]), // blue
+        // );
     }
 }
 
