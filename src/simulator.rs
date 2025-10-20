@@ -2,6 +2,7 @@ use crate::{
     game_referee::{GameReferee, RefereeAction},
     infos,
     robot::{RobotBuilder, RobotHandler},
+    player_action::PlayerAction,
 };
 use core::f32;
 use crossbeam::channel::Receiver;
@@ -41,6 +42,7 @@ pub struct SimulatorApp {
     pub contact_force_recv: Receiver<ContactForceEvent>,
     // Simulator :
     pub game_referee: GameReferee,
+    pub player_action: [PlayerAction; 2],
     pub ball_rigid_body_handle: RigidBodyHandle,
     pub ball_collider_handle: ColliderHandle,
     pub robots: [RobotHandler; 4],
@@ -130,6 +132,7 @@ impl SimulatorApp {
             contact_force_recv,
             // Simulator :
             game_referee: GameReferee::default(),
+            player_action: Default::default(),
             ball_rigid_body_handle: RigidBodyHandle::invalid(),
             ball_collider_handle: ColliderHandle::invalid(),
             robots: robot_handlers,

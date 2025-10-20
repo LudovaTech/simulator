@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use nalgebra::vector;
+use rerun::external::egui::{Color32, RichText};
 use rerun::external::re_log_types::BlueprintActivationCommand;
 use rerun::external::re_types::blueprint;
 use rerun::external::re_viewer::App;
@@ -13,6 +14,7 @@ use rerun::external::{
     re_log_types, re_memory, re_types, re_viewer, tokio,
 };
 
+use crate::player_action::{PlayerAction, PlayerActionPython};
 use crate::{
     infos, robot::RobotHandler, simulator::SimulatorApp, vector_converter::EguiConvertCompatibility,
 };
@@ -32,17 +34,26 @@ impl eframe::App for RerunContainer {
     }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        self.tick();
+        if self
+            .simulation
+            .player_action
+            .iter()
+            .any(|pa| matches!(pa, PlayerAction::Invalid{ .. }))
+        {
+            // We are still in configuration mode
+            self.configuration_ui(ctx);
+        } else {
+            self.tick();
+            // First add our panel(s):
+            egui::SidePanel::left("my_side_panel")
+                .default_width(300.0)
+                .show(ctx, |ui| {
+                    self.ui(ctx, ui);
+                });
 
-        // First add our panel(s):
-        egui::SidePanel::left("my_side_panel")
-            .default_width(300.0)
-            .show(ctx, |ui| {
-                self.ui(ui);
-            });
-
-        // Now show the Rerun Viewer in the remaining space:
-        self.rerun_app.update(ctx, frame);
+            // Now show the Rerun Viewer in the remaining space:
+            self.rerun_app.update(ctx, frame);
+        }
     }
 }
 
@@ -121,19 +132,15 @@ impl RerunContainer {
 
 // Panel ui
 impl RerunContainer {
-    fn ui(&mut self, ui: &mut egui::Ui) {
+    fn ui(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         ui.add_space(4.0);
         ui.vertical_centered(|ui| {
             ui.strong("My custom panel");
         });
         ui.separator();
         ui.vertical(|ui| {
-            if ui.button("Vue spectacle").clicked() {
-                
-            }
-            if ui.button("Vue debug").clicked() {
-
-            }
+            if ui.button("Vue spectacle").clicked() {}
+            if ui.button("Vue debug").clicked() {}
 
             ui.add(egui::Label::new(
                 egui::RichText::new(format!(
@@ -147,24 +154,55 @@ impl RerunContainer {
             ui.add_space(10.0);
 
             if ui.button("Move Robot A1 Right").clicked() {
-                self.simulation.rigid_body_set[self.simulation.robot_to_rigid_body_handle
-                    [&RobotHandler::new('A', 1)]]
+                self.simulation.rigid_body_set
+                    [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new('A', 1)]]
                     .apply_impulse(vector![100.0, 0.0], true);
             }
             if ui.button("Move Robot A1 Left").clicked() {
-                self.simulation.rigid_body_set[self.simulation.robot_to_rigid_body_handle
-                    [&RobotHandler::new('A', 1)]]
+                self.simulation.rigid_body_set
+                    [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new('A', 1)]]
                     .apply_impulse(vector![-100.0, 0.0], true);
             }
             if ui.button("Move Robot A1 Up").clicked() {
-                self.simulation.rigid_body_set[self.simulation.robot_to_rigid_body_handle
-                    [&RobotHandler::new('A', 1)]]
+                self.simulation.rigid_body_set
+                    [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new('A', 1)]]
                     .apply_impulse(vector![0.0, -100.0], true);
             }
             if ui.button("Move Robot A1 Down").clicked() {
-                self.simulation.rigid_body_set[self.simulation.robot_to_rigid_body_handle
-                    [&RobotHandler::new('A', 1)]]
+                self.simulation.rigid_body_set
+                    [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new('A', 1)]]
                     .apply_impulse(vector![0.0, 100.0], true);
+            }
+        });
+    }
+
+    fn configuration_ui(&mut self, ctx: &egui::Context) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.heading("Bienvenue sur le simulateur !");
+            ui.label("Sélectionnez l'emplacement du code source des deux équipes");
+            ui.label(RichText::new("Attention! le code sélectionné sera executé sur votre machine avec des droits classiques. N'entrez que du code auquel vous faites confiance.").color(Color32::RED));
+            ui.add_space(50.0);
+            let mut new_states = Vec::new();
+            for (n, player_action) in self.simulation.player_action.iter_mut().enumerate() {
+                match player_action {
+                    PlayerAction::Invalid{ path, err_message } => {
+                        ui.heading(format!("Equipe {} :", n+1));
+                        let response = ui.text_edit_singleline( path);
+                        if response.changed() {
+                            new_states.push((n, PlayerAction::validate_path(&path)));
+                        }
+                        if let Some(err_message) = err_message {
+                            ui.label(RichText::new(format!("{err_message}")).color(Color32::ORANGE));
+                        }
+                    },
+                    PlayerAction::Python(PlayerActionPython { name, ..}) => {
+                        ui.heading(format!("Equipe {name} :"));
+                    }
+                }
+            }
+            // Apply new states
+            for (n, new_state) in new_states {
+                self.simulation.player_action[n] = new_state;
             }
         });
     }

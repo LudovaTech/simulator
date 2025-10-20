@@ -4,6 +4,7 @@ mod infos;
 mod robot;
 mod simulator;
 mod vector_converter;
+mod player_action;
 
 use rerun::external::{re_memory, tokio};
 
