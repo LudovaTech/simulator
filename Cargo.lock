@@ -8800,7 +8800,6 @@ dependencies = [
  "mimalloc",
  "nalgebra",
  "pyo3",
- "pyo3-ffi",
  "rapier2d",
  "rerun",
 ]

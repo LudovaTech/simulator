@@ -10,8 +10,6 @@ use pyo3::{
     Py, Python,
 };
 
-use std::sync::Arc;
-
 #[derive(Debug)]
 pub enum PlayerAction {
     Invalid {
@@ -32,6 +30,7 @@ impl Default for PlayerAction {
 
 pub struct PlayerActionPython {
     pub name: String,
+    pub path: String,
     activator: Py<PyModule>,
 }
 
@@ -61,7 +60,7 @@ impl Display for ValidationError {
             ValidationError::CannotReadFile(err_str) => write!(f, "Je n'arrive pas à lire le fichier : {}", err_str),
             ValidationError::ErrorOnLoadingCode(err_str) => write!(f, "Le code python lève une exception lors de sa lecture : {}", err_str),
             ValidationError::TeamNameIsMissing => write!(f, "Il est nécessaire de spécifier le nom d'équipe dans le code. Pour python donner une variable globale `TEAM_NAME`"),
-            ValidationError::TeamNameIncorrect(err_str) => write!(f, "Erreur en tentant de lire le nom d'équipe. Est-ce bien une string ? : {}", err_str),
+            ValidationError::TeamNameIncorrect(err_str) => write!(f, "Le nom d'équipe est illisible. Est-ce bien une string ? : {}", err_str),
         }
     }
 }
@@ -215,6 +214,7 @@ impl PlayerAction {
 
             PlayerAction::Python(PlayerActionPython {
                 name,
+                path: path.to_owned(),
                 activator: activators.into(),
             })
         });

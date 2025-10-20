@@ -16,7 +16,6 @@ rerun = {version = "0.26.0", features = [
   "server",
 ]}
 mimalloc = "0.1.48"
-pyo3-ffi = "0.27.0"
 
 [dependencies.pyo3]
 version = "0.27.0"

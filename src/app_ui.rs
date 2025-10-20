@@ -195,8 +195,12 @@ impl RerunContainer {
                             ui.label(RichText::new(format!("{err_message}")).color(Color32::ORANGE));
                         }
                     },
-                    PlayerAction::Python(PlayerActionPython { name, ..}) => {
+                    PlayerAction::Python(PlayerActionPython { name, path, ..}) => {
                         ui.heading(format!("Equipe {name} :"));
+                        ui.label(format!("Source du code : {}", path));
+                        if ui.button(format!("enlever {}", name)).clicked() {
+                            new_states.push((n, PlayerAction::default()));
+                        }
                     }
                 }
             }
