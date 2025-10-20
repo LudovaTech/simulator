@@ -169,6 +169,14 @@ impl PlayerAction {
         };
 
         let player_action_python: PlayerAction = Python::attach(|py| {
+            // add the directory of the python main file to the python PATH.
+            // This allows the main python file to import other python files that are in the same directory
+            if let Some(parent) = path_obj.parent() {
+                let sys = py.import("sys").unwrap();
+                let pypath = sys.getattr("path").unwrap();
+                pypath.call_method1("append", (parent.to_str(), )).unwrap();
+            }
+
             let activators = match PyModule::from_code(py, file_content, file_name, module_name) {
                 Ok(a) => a,
                 Err(err) => {

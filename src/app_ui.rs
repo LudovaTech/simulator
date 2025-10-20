@@ -21,11 +21,19 @@ use crate::{
 
 const BUTTON_PANEL_WIDTH: f32 = 150.0;
 
+#[derive(Debug, PartialEq)]
+pub enum AppState {
+    Configuration,
+    Running,
+    ReRunning,
+}
+
 pub struct RerunContainer {
     pub rerun_app: re_viewer::App,
     pub simulation: SimulatorApp,
     pub rec: RecordingStream,
     pub robot_handle_to_color: HashMap<RobotHandler, Color>,
+    pub app_state: AppState,
 }
 
 impl eframe::App for RerunContainer {
@@ -34,25 +42,26 @@ impl eframe::App for RerunContainer {
     }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        if self
-            .simulation
-            .player_action
-            .iter()
-            .any(|pa| matches!(pa, PlayerAction::Invalid{ .. }))
-        {
-            // We are still in configuration mode
-            self.configuration_ui(ctx);
-        } else {
-            self.tick();
-            // First add our panel(s):
-            egui::SidePanel::left("my_side_panel")
-                .default_width(300.0)
-                .show(ctx, |ui| {
-                    self.ui(ctx, ui);
-                });
+        match self.app_state {
+            AppState::Configuration => {
+                // We are still in configuration mode
+                self.configuration_ui(ctx);
+            }
+            AppState::Running | AppState::ReRunning => {
+                if self.app_state == AppState::Running {
+                    // We don't need physic if we are in ReRunning mode
+                    self.tick();
+                }
+                // First add our panel(s):
+                egui::SidePanel::left("my_side_panel")
+                    .default_width(300.0)
+                    .show(ctx, |ui| {
+                        self.ui(ctx, ui);
+                    });
 
-            // Now show the Rerun Viewer in the remaining space:
-            self.rerun_app.update(ctx, frame);
+                // Now show the Rerun Viewer in the remaining space:
+                self.rerun_app.update(ctx, frame);
+            }
         }
     }
 }
@@ -120,6 +129,7 @@ impl RerunContainer {
                     simulation,
                     rec,
                     robot_handle_to_color,
+                    app_state: AppState::Configuration,
                 };
                 rerun_container.init();
                 Ok(Box::new(rerun_container))
@@ -135,13 +145,10 @@ impl RerunContainer {
     fn ui(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         ui.add_space(4.0);
         ui.vertical_centered(|ui| {
-            ui.strong("My custom panel");
+            ui.strong("SIMULATOR");
         });
         ui.separator();
         ui.vertical(|ui| {
-            if ui.button("Vue spectacle").clicked() {}
-            if ui.button("Vue debug").clicked() {}
-
             ui.add(egui::Label::new(
                 egui::RichText::new(format!(
                     "{} : {}",
@@ -177,11 +184,16 @@ impl RerunContainer {
     }
 
     fn configuration_ui(&mut self, ctx: &egui::Context) {
+        let are_all_teams_ready = !self
+            .simulation
+            .player_action
+            .iter()
+            .any(|pa| matches!(pa, PlayerAction::Invalid { .. }));
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Bienvenue sur le simulateur !");
             ui.label("Sélectionnez l'emplacement du code source des deux équipes");
-            ui.label(RichText::new("Attention! le code sélectionné sera executé sur votre machine avec des droits classiques. N'entrez que du code auquel vous faites confiance.").color(Color32::RED));
-            ui.add_space(50.0);
+            ui.label(RichText::new("Attention! le code sélectionné sera executé sur votre machine. N'entrez que du code auquel vous faites confiance.").color(Color32::RED));
+            ui.add_space(20.0);
             let mut new_states = Vec::new();
             for (n, player_action) in self.simulation.player_action.iter_mut().enumerate() {
                 match player_action {
@@ -207,6 +219,20 @@ impl RerunContainer {
             // Apply new states
             for (n, new_state) in new_states {
                 self.simulation.player_action[n] = new_state;
+            }
+
+            ui.separator();
+            if are_all_teams_ready {
+                if ui.button("Lancer la simulation !").clicked() {
+                    self.app_state = AppState::Running;
+                }
+            } else {
+                if ui.button("Démarrer une session sans équipes").clicked() {
+                    // Let's remove all the configuration that the user made
+                    self.simulation.player_action = Default::default();
+                    self.app_state = AppState::ReRunning;
+                }
+                ui.label("cela permet par exemple d'importer le fichier d'un match enregistré pour le revoir.");
             }
         });
     }
