@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     ffi::CStr,
     fmt::{Debug, Display},
     path::Path,
@@ -9,6 +10,9 @@ use pyo3::{
     types::{PyAnyMethods, PyModule, PyType},
     Py, Python,
 };
+use rapier2d::prelude::{RigidBody, RigidBodyHandle};
+
+use crate::simulator::Simulator;
 
 #[derive(Debug)]
 pub enum PlayerAction {
@@ -22,7 +26,7 @@ pub enum PlayerAction {
 impl Default for PlayerAction {
     fn default() -> Self {
         PlayerAction::Invalid {
-            path: String::new(),
+            path: "/run/media/thomas/FS Projets/simulator/tests/test1.py".to_owned(), //String::new(), // HERE for debug purposes
             err_message: None,
         }
     }
@@ -174,7 +178,7 @@ impl PlayerAction {
             if let Some(parent) = path_obj.parent() {
                 let sys = py.import("sys").unwrap();
                 let pypath = sys.getattr("path").unwrap();
-                pypath.call_method1("append", (parent.to_str(), )).unwrap();
+                pypath.call_method1("append", (parent.to_str(),)).unwrap();
             }
 
             let activators = match PyModule::from_code(py, file_content, file_name, module_name) {
@@ -230,3 +234,41 @@ impl PlayerAction {
         return player_action_python;
     }
 }
+
+// impl PlayerAction {
+//     pub fn tick(
+//         &self,
+//         // We cannot borrow a mutable instance of Simulator due to borrowing restrictions
+//         rigid_body_set: &mut rapier2d::prelude::RigidBodySet,
+//         robot_to_rigid_body_handle: &mut HashMap<
+//             crate::robot::RobotHandler,
+//             RigidBodyHandle,
+//         >,
+//         ball_rigid_body_handle: RigidBodyHandle,
+//     ) {
+//         match self {
+//             PlayerAction::Invalid { .. } => panic!("impossible state"),
+//             PlayerAction::Python(player_action_python) => {
+//                 player_action_python.tick(rigid_body_set, robot_to_rigid_body_handle, ball_rigid_body_handle)
+//             }
+//         }
+//     }
+// }
+
+// impl PlayerActionPython {
+//     pub fn tick(
+//         &self,
+//         // We cannot borrow a mutable instance of Simulator due to borrowing restrictions
+//         self_rigid_body: &mut RigidBody,
+//         robot_to_rigid_body_handle: &mut HashMap<
+//             crate::robot::RobotHandler,
+//             rapier2d::prelude::RigidBodyHandle,
+//         >,
+//         ball_rigid_body_handle: RigidBodyHandle,
+//     ) {
+//         Python::attach(|py| {
+//             self.activator.call1(py, ()).unwrap();
+
+//         });
+//     }
+// }

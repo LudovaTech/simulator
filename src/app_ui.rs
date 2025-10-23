@@ -6,7 +6,11 @@ use rerun::external::egui::{Color32, RichText};
 use rerun::external::re_log_types::BlueprintActivationCommand;
 use rerun::external::re_types::blueprint;
 use rerun::external::re_viewer::App;
-use rerun::{AsComponents, Boxes2D, LineStrip2D, LineStrips2D, RecordingStream};
+use rerun::external::re_viewer_context::TimeControl;
+use rerun::{
+    ArchetypeName, AsComponents, Boxes2D, ComponentDescriptor, LineStrip2D, LineStrips2D,
+    RecordingStream, StoreId,
+};
 use rerun::{Color, DynamicArchetype, EntityPath, Points2D, Radius, TextLog};
 
 use rerun::external::{
@@ -16,10 +20,12 @@ use rerun::external::{
 
 use crate::player_action::{PlayerAction, PlayerActionPython};
 use crate::{
-    infos, robot::RobotHandler, simulator::SimulatorApp, vector_converter::EguiConvertCompatibility,
+    infos, robot::RobotHandler, simulator::Simulator, vector_converter::EguiConvertCompatibility,
 };
 
 const BUTTON_PANEL_WIDTH: f32 = 150.0;
+
+const APP_ID: &str = "simulator_app";
 
 #[derive(Debug, PartialEq)]
 pub enum AppState {
@@ -30,7 +36,7 @@ pub enum AppState {
 
 pub struct RerunContainer {
     pub rerun_app: re_viewer::App,
-    pub simulation: SimulatorApp,
+    pub simulation: Simulator,
     pub rec: RecordingStream,
     pub robot_handle_to_color: HashMap<RobotHandler, Color>,
     pub app_state: AppState,
@@ -86,16 +92,14 @@ impl RerunContainer {
         );
 
         let mut native_options = re_viewer::native::eframe_options(None);
-        native_options.viewport = native_options
-            .viewport
-            .with_app_id("rerun_extend_viewer_ui_example");
+        native_options.viewport = native_options.viewport.with_app_id(APP_ID);
 
         let startup_options = re_viewer::StartupOptions::default();
 
         // This is used for analytics, if the `analytics` feature is on in `Cargo.toml`
         let app_env = re_viewer::AppEnvironment::Custom("My Wrapper".to_owned());
 
-        let window_title = "My Customized Viewer";
+        let window_title = "Simulator";
         eframe::run_native(
             window_title,
             native_options,
@@ -112,12 +116,18 @@ impl RerunContainer {
                     re_viewer::AsyncRuntimeHandle::from_current_tokio_runtime_or_wasmbindgen()?,
                 );
 
-                let simulation = SimulatorApp::default();
+                // TODO : maybe it is not a good idea to initiate with values, switch to enum with states according to AppState
+                // blocking : custom viewport...
+                let simulation = Simulator::default();
                 let mut robot_handle_to_color = HashMap::new();
-                robot_handle_to_color.insert(simulation.robots[0], Color::from_rgb(0, 0, 255));
-                robot_handle_to_color.insert(simulation.robots[1], Color::from_rgb(255, 255, 255));
-                robot_handle_to_color.insert(simulation.robots[2], Color::from_rgb(255, 0, 0));
-                robot_handle_to_color.insert(simulation.robots[3], Color::from_rgb(0, 255, 0));
+                robot_handle_to_color
+                    .insert(simulation.robots[0].clone(), Color::from_rgb(0, 0, 255));
+                robot_handle_to_color
+                    .insert(simulation.robots[1].clone(), Color::from_rgb(255, 255, 255));
+                robot_handle_to_color
+                    .insert(simulation.robots[2].clone(), Color::from_rgb(255, 0, 0));
+                robot_handle_to_color
+                    .insert(simulation.robots[3].clone(), Color::from_rgb(0, 255, 0));
                 // We mix server and client
                 let rec = rerun::RecordingStreamBuilder::new("simulator")
                     .spawn()
@@ -138,6 +148,23 @@ impl RerunContainer {
 
         Ok(())
     }
+}
+
+fn format_arrow(array: &dyn arrow::array::Array) -> String {
+    use arrow::util::display::{ArrayFormatter, FormatOptions};
+
+    let num_bytes = array.get_buffer_memory_size();
+    if array.len() == 1 {
+        // && num_bytes < 256 // TODO why ?
+        // Print small items:
+        let options = FormatOptions::default();
+        if let Ok(formatter) = ArrayFormatter::try_new(array, &options) {
+            return formatter.value(0).to_string();
+        }
+    }
+
+    // Fallback:
+    format!("{num_bytes} bytes")
 }
 
 // Panel ui
@@ -162,33 +189,71 @@ impl RerunContainer {
 
             if ui.button("Move Robot A1 Right").clicked() {
                 self.simulation.rigid_body_set
-                    [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new('A', 1)]]
-                    .apply_impulse(vector![100.0, 0.0], true);
+                    [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new("A", 1)]]
+                    .add_force(vector![100.0, 0.0], true);
             }
             if ui.button("Move Robot A1 Left").clicked() {
                 self.simulation.rigid_body_set
-                    [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new('A', 1)]]
-                    .apply_impulse(vector![-100.0, 0.0], true);
+                    [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new("A", 1)]]
+                    .add_force(vector![-100.0, 0.0], true);
             }
             if ui.button("Move Robot A1 Up").clicked() {
                 self.simulation.rigid_body_set
-                    [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new('A', 1)]]
+                    [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new("A", 1)]]
                     .apply_impulse(vector![0.0, -100.0], true);
             }
             if ui.button("Move Robot A1 Down").clicked() {
                 self.simulation.rigid_body_set
-                    [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new('A', 1)]]
+                    [self.simulation.robot_to_rigid_body_handle[&RobotHandler::new("A", 1)]]
                     .apply_impulse(vector![0.0, 100.0], true);
             }
         });
+        ui.separator();
+        if let Some(entity_database) = self.rerun_app.recording_db() {
+            // let query =
+            //     re_chunk_store::LatestAtQuery::new(timeline, at)
+            //re_chunk_store::LatestAtQuery::latest(re_log_types::TimelineName::log_time());
+            // Print Component Descriptors
+            // println!("{:?}", entity_database.storage_engine().store().all_components_for_entity(&EntityPath::from_file_path(std::path::Path::new("/ball"))));
+            // Some({ComponentDescriptor { archetype: Some("rerun.archetypes.Points2D"), component: "Points2D:positions", component_type: Some("rerun.components.Position2D") },
+            // ComponentDescriptor { archetype: Some("rerun.archetypes.Points2D"), component: "Points2D:colors", component_type: Some("rerun.components.Color") },
+            // ComponentDescriptor { archetype: Some("rerun.archetypes.Points2D"), component: "Points2D:radii", component_type: Some("rerun.components.Radius") }})
+            //let time = RecordingStream::now(&self)
+            if let Some(blueprint_ctx) = self.rerun_app.blueprint_ctx(&StoreId::new(
+                rerun::StoreKind::Blueprint,
+                APP_ID,
+                self.rec.store_info().unwrap().recording_id().to_string(),
+            )) {
+                let time_ctrl = TimeControl::from_blueprint(&blueprint_ctx);
+                println!("time : {:?}", time_ctrl.time());
+            } else {
+                println!("notime");
+            }
+            
+            let component_pos = ComponentDescriptor {
+                archetype: Some("rerun.archetypes.Points2D".into()),
+                component: "Points2D:positions".into(),
+                component_type: Some("rerun.components.Position2D".into()),
+            };
+            // let results = entity_database.latest_at(&query, &EntityPath::from_file_path(std::path::Path::new("/ball")), [&component_pos]);
+            // // println!("result : {:?}", result.get_required(&component_pos).unwrap());
+            // if let Some(data) = results.component_batch_raw(&component_pos) {
+            //     egui::ScrollArea::vertical()
+            //         .auto_shrink([false, true])
+            //         .show(ui, |ui| {
+            //             // Iterate over all the instances (e.g. all the points in the point cloud):
+
+            //             let num_instances = data.len();
+            //             println!("{:?}", num_instances);
+            //             for i in 0..num_instances {
+            //                 ui.label(format_arrow(&*data.slice(i, 1)));
+            //             }
+            //         });
+            // };
+        }
     }
 
     fn configuration_ui(&mut self, ctx: &egui::Context) {
-        let are_all_teams_ready = !self
-            .simulation
-            .player_action
-            .iter()
-            .any(|pa| matches!(pa, PlayerAction::Invalid { .. }));
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Bienvenue sur le simulateur !");
             ui.label("Sélectionnez l'emplacement du code source des deux équipes");
@@ -209,7 +274,7 @@ impl RerunContainer {
                     },
                     PlayerAction::Python(PlayerActionPython { name, path, ..}) => {
                         ui.heading(format!("Equipe {name} :"));
-                        ui.label(format!("Source du code : {}", path));
+                        ui.label(format!("code source : {}", path));
                         if ui.button(format!("enlever {}", name)).clicked() {
                             new_states.push((n, PlayerAction::default()));
                         }
@@ -222,7 +287,7 @@ impl RerunContainer {
             }
 
             ui.separator();
-            if are_all_teams_ready {
+            if self.simulation.are_all_teams_ready() {
                 if ui.button("Lancer la simulation !").clicked() {
                     self.app_state = AppState::Running;
                 }
@@ -258,7 +323,9 @@ impl RerunContainer {
                     .with_radii([Radius::new_scene_units(infos::BALL_RADIUS)]),
             )
             .unwrap();
-        for robot_handle in self.simulation.robots {
+
+        // We accept the performance cost of clone to avoid putting lifetimes everywhere
+        for robot_handle in self.simulation.robots.clone() {
             self.draw_robot(&robot_handle);
         }
     }
@@ -309,10 +376,10 @@ impl RerunContainer {
         let field_rect =
             Boxes2D::from_mins_and_sizes([[0.0, 0.0]], [[infos::FIELD_DEPTH, infos::FIELD_WIDTH]])
                 .with_colors([Color::from_rgb(0, 255, 0)]);
-        self.rec.log("field", &field_rect).unwrap();
+        self.rec.log_static("field", &field_rect).unwrap();
 
         self.rec
-            .log(
+            .log_static(
                 "field/boundaries",
                 &[Boxes2D::from_mins_and_sizes(
                     [[infos::SPACE_BEFORE_LINE_SIDE, infos::SPACE_BEFORE_LINE_SIDE]],
@@ -383,7 +450,7 @@ impl RerunContainer {
 }
 
 pub struct NoUIContainer {
-    pub simulation: SimulatorApp,
+    pub simulation: Simulator,
 }
 
 impl NoUIContainer {
@@ -397,7 +464,7 @@ impl NoUIContainer {
 impl Default for NoUIContainer {
     fn default() -> Self {
         NoUIContainer {
-            simulation: SimulatorApp::default(),
+            simulation: Simulator::default(),
         }
     }
 }

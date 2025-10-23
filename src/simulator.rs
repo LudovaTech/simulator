@@ -22,7 +22,7 @@ pub enum FieldWallKind {
     GoalRightDown,
 }
 
-pub struct SimulatorApp {
+pub struct Simulator {
     // World (rapier) :
     pub rigid_body_set: RigidBodySet,
     pub collider_set: ColliderSet,
@@ -51,11 +51,11 @@ pub struct SimulatorApp {
     pub collider_to_field_wall: HashMap<ColliderHandle, FieldWallKind>,
 }
 
-impl Default for SimulatorApp {
+impl Default for Simulator {
     fn default() -> Self {
-        SimulatorApp::new([
+        Simulator::new([
             RobotBuilder {
-                team_name: 'A',
+                team_name: "A".to_owned(),
                 robot_number: 1,
                 initial_position: vector!(50.0, 50.0),
                 friction: infos::ROBOT_FRICTION,
@@ -66,7 +66,7 @@ impl Default for SimulatorApp {
                 radius: infos::ROBOT_RADIUS,
             },
             RobotBuilder {
-                team_name: 'A',
+                team_name: "A".to_owned(),
                 robot_number: 2,
                 initial_position: vector!(50.0, 75.0),
                 friction: infos::ROBOT_FRICTION,
@@ -77,7 +77,7 @@ impl Default for SimulatorApp {
                 radius: infos::ROBOT_RADIUS,
             },
             RobotBuilder {
-                team_name: 'B',
+                team_name: "B".to_owned(),
                 robot_number: 1,
                 initial_position: vector!(50.0, 100.0),
                 friction: infos::ROBOT_FRICTION,
@@ -88,7 +88,7 @@ impl Default for SimulatorApp {
                 radius: infos::ROBOT_RADIUS,
             },
             RobotBuilder {
-                team_name: 'B',
+                team_name: "B".to_owned(),
                 robot_number: 2,
                 initial_position: vector!(50.0, 125.0),
                 friction: infos::ROBOT_FRICTION,
@@ -102,8 +102,8 @@ impl Default for SimulatorApp {
     }
 }
 
-impl SimulatorApp {
-    pub fn new(robots_builders: [RobotBuilder; 4]) -> SimulatorApp {
+impl Simulator {
+    pub fn new(robots_builders: [RobotBuilder; 4]) -> Simulator {
         let robot_handlers: [RobotHandler; 4] = [
             robots_builders[0].to_robot_handle(),
             robots_builders[1].to_robot_handle(),
@@ -112,7 +112,7 @@ impl SimulatorApp {
         ];
         let (collision_sender, collision_recv) = crossbeam::channel::unbounded();
         let (contact_force_sender, contact_force_recv) = crossbeam::channel::unbounded();
-        let mut sim = SimulatorApp {
+        let mut sim = Simulator {
             // World (rapier) :
             rigid_body_set: RigidBodySet::new(),
             collider_set: ColliderSet::new(),
@@ -161,7 +161,7 @@ impl SimulatorApp {
     }
 }
 
-impl SimulatorApp {
+impl Simulator {
     fn create_rigid_body(&mut self, robot_builder: &RobotBuilder) -> RigidBodyHandle {
         let body = RigidBodyBuilder::dynamic()
             .linear_damping(robot_builder.linear_damping)
@@ -210,8 +210,19 @@ impl SimulatorApp {
     }
 }
 
-impl SimulatorApp {
+impl Simulator {
     pub fn tick(&mut self) {
+        // call code
+
+        // my_position,
+        // friend_position,
+        // enemy1_position,
+        // enemy2_position,
+        // ball_position,
+        let [player1, player2] = &self.player_action;
+        // player1.tick(
+        //     self.rigid_body_set[]
+        // );
         // physic step
         self.physics_pipeline.step(
             &self.gravity,
@@ -265,9 +276,17 @@ impl SimulatorApp {
             .rotation()
             .clone()
     }
+
+    #[inline]
+    pub fn are_all_teams_ready(&self) -> bool {
+        !self
+            .player_action
+            .iter()
+            .any(|pa| matches!(pa, PlayerAction::Invalid { .. }))
+    }
 }
 
-impl SimulatorApp {
+impl Simulator {
     fn process_collision(&mut self, collision_event: CollisionEvent) -> Option<RefereeAction> {
         //On ne considère que les collisions qui commencent _pour l'instant_
         if collision_event.stopped() {
@@ -362,32 +381,32 @@ impl SimulatorApp {
     pub fn new_round(&mut self) {
         let center: Vector2<f32> = Vector2::new(infos::FIELD_DEPTH/2.0, infos::FIELD_WIDTH/2.0);
 
-        SimulatorApp::reset_rigid_body(
+        Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[0]]],
             f32::consts::FRAC_PI_2,
             center - Vector2::new(infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y)
         );
 
-        SimulatorApp::reset_rigid_body(
+        Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[1]]],
             f32::consts::FRAC_PI_2,
             center - Vector2::new(infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y)
         );
 
-        SimulatorApp::reset_rigid_body(
+        Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[2]]],
             3.0 * f32::consts::FRAC_PI_2,
             center + Vector2::new(infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y)
         );
 
-        SimulatorApp::reset_rigid_body(
+        Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[3]]],
             3.0 * f32::consts::FRAC_PI_2,
             center + Vector2::new(infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y)
         );
 
         // ball
-        SimulatorApp::reset_rigid_body(
+        Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.ball_rigid_body_handle],
             0.0,
             center,
