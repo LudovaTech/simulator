@@ -4,24 +4,25 @@ use std::{
     path::Path,
 };
 
+use nalgebra::vector;
 use pyo3::{
     Py, Python, exceptions,
-    types::{PyAnyMethods, PyModule},
+    types::{PyAnyMethods, PyDict, PyDictMethods, PyModule},
 };
-
+use rerun::external::re_error::format;
 
 #[derive(Debug)]
 pub enum PlayerCode {
-    Python(PlayerActionPython),
+    Python(PlayerCodePython),
 }
 
-pub struct PlayerActionPython {
+pub struct PlayerCodePython {
     pub name: String,
     pub path: String,
     activator: Py<PyModule>,
 }
 
-impl Debug for PlayerActionPython {
+impl Debug for PlayerCodePython {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PlayerActionPython")
             .field("name", &self.name)
@@ -33,7 +34,7 @@ impl PlayerCode {
     #[inline]
     pub fn name(&self) -> &str {
         match self {
-            PlayerCode::Python(PlayerActionPython { name, .. }) => name,
+            PlayerCode::Python(PlayerCodePython { name, .. }) => name,
         }
     }
 
@@ -42,6 +43,16 @@ impl PlayerCode {
     pub fn _set_name(&mut self, new_name: &str) {
         match self {
             PlayerCode::Python(python_code) => python_code.name = new_name.to_owned(),
+        }
+    }
+
+    #[inline]
+    pub fn tick(
+        &self,
+        player_info: PlayerInformation,
+    ) -> Result<PlayerAction, CodeReturnValueError> {
+        match self {
+            PlayerCode::Python(python_code) => python_code.tick(player_info),
         }
     }
 }
@@ -55,6 +66,8 @@ pub enum CodeValidationError {
     ErrorOnLoadingCode(String),
     TeamNameIsMissing,
     TeamNameIncorrect(String),
+    UpdateFunctionIsMissing,
+    UpdateFunctionIncorrect(String),
 }
 
 impl Display for CodeValidationError {
@@ -80,6 +93,13 @@ impl Display for CodeValidationError {
                 "Le nom d'équipe est illisible. Est-ce bien une string ? : {}",
                 err_str
             ),
+            CodeValidationError::UpdateFunctionIsMissing => write!(
+                f,
+                "Le code doit contenir une fonction `update(data)` sinon je ne peux pas l'appeler."
+            ),
+            CodeValidationError::UpdateFunctionIncorrect(err_str) => {
+                write!(f, "La fonction update est illisible : {}", err_str)
+            }
         }
     }
 }
@@ -162,9 +182,18 @@ pub fn validate_path(path: &str) -> Result<PlayerCode, CodeValidationError> {
             .extract::<String>()
             .map_err(|err| CodeValidationError::TeamNameIncorrect(format!("{}", err)))?;
 
-        // TODO : check if basic methods are there
+        let name = name.replace(" ", "_");
 
-        Ok(PlayerCode::Python(PlayerActionPython {
+        // check if update method is here
+        activators.getattr("update").map_err(|err| {
+            if err.is_instance_of::<exceptions::PyAttributeError>(py) {
+                CodeValidationError::UpdateFunctionIsMissing
+            } else {
+                CodeValidationError::UpdateFunctionIncorrect(format!("{}", err))
+            }
+        })?;
+
+        Ok(PlayerCode::Python(PlayerCodePython {
             name,
             path: path.to_owned(),
             activator: activators.into(),
@@ -211,3 +240,211 @@ pub fn validate_path(path: &str) -> Result<PlayerCode, CodeValidationError> {
 //         });
 //     }
 // }
+
+#[derive(Debug)]
+pub enum CodeReturnValueError {
+    PlayerCodeException {
+        code_name: String,
+        err: String,
+    },
+    NoDict {
+        code_name: String,
+        err: String,
+        value_returned: String,
+    },
+    InvalidType {
+        code_name: String,
+        field_name: String,
+        invalid_type_hint: String,
+        err: String,
+        value_returned: String,
+    },
+    MissingField {
+        code_name: String,
+        missing_attribute_name: String,
+        value_returned: String,
+    },
+    Error {
+        code_name: String,
+        err: String,
+        value_returned: String,
+    },
+}
+
+impl Display for CodeReturnValueError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CodeReturnValueError::PlayerCodeException { code_name, err } => write!(
+                f,
+                "Le code python de {} a levé l'exception {}",
+                code_name, err
+            ),
+            CodeReturnValueError::Error {
+                code_name,
+                err,
+                value_returned,
+            } => write!(
+                f,
+                "Le code python de {}, a produit l'erreur suivante lors de la lecture du dictionnaire {}. Valeur renvoyée : {}",
+                code_name, err, value_returned
+            ),
+            CodeReturnValueError::MissingField {
+                code_name,
+                missing_attribute_name,
+                value_returned,
+            } => write!(
+                f,
+                "Dans le code python de {}, l'attribut `{}` est manquant dans le dictionnaire renvoyé. Valeur renvoyée : {}",
+                code_name, missing_attribute_name, value_returned
+            ),
+            CodeReturnValueError::InvalidType {
+                code_name,
+                field_name,
+                invalid_type_hint,
+                err,
+                value_returned,
+            } => write!(
+                f,
+                "Dans le code python de {}, la valeur renvoyée dans le champ `{}` du dictionnaire n'est pas {}. (erreur: {}) Valeur renvoyée : {}",
+                code_name, field_name, invalid_type_hint, err, value_returned
+            ),
+            CodeReturnValueError::NoDict {
+                code_name,
+                err,
+                value_returned,
+            } => write!(
+                f,
+                "Dans le code python de {}, il est impossible de convertir la valeur renvoyée en un dictionnaire ({}): Valeur renvoyée : {}",
+                code_name, err, value_returned
+            ),
+        }
+    }
+}
+
+impl std::error::Error for CodeReturnValueError {}
+
+#[derive(Debug)]
+pub struct PlayerInformation {
+    pub my_position: (f32, f32),
+    pub friend_position: (f32, f32),
+    pub enemy1_position: (f32, f32),
+    pub enemy2_position: (f32, f32),
+    pub ball_position: (f32, f32),
+}
+
+#[derive(Debug)]
+pub struct PlayerAction {
+    pub target_position: (f32, f32),
+    pub power: u8,
+    pub target_orientation: f32,
+}
+
+impl PlayerCodePython {
+    #[inline]
+    fn dict_extract<T>(
+        &self,
+        action: &Py<pyo3::PyAny>,
+        dict: &pyo3::Bound<'_, PyDict>,
+        field_name: &str,
+        expected_type_hint: &str,
+    ) -> Result<T, CodeReturnValueError>
+    where
+        for<'a, 'py> T: pyo3::FromPyObject<'a, 'py>,
+        for<'a, 'py> <T as pyo3::FromPyObject<'a, 'py>>::Error: std::fmt::Display,
+    {
+        Ok(dict
+            .get_item(field_name)
+            .map_err(|err| CodeReturnValueError::Error {
+                code_name: self.name.clone(),
+                err: format!("{}", err),
+                value_returned: format!("{}", action),
+            })?
+            .ok_or_else(|| CodeReturnValueError::MissingField {
+                code_name: self.name.clone(),
+                missing_attribute_name: field_name.to_owned(),
+                value_returned: format!("{}", action),
+            })?
+            .extract::<T>()
+            .map_err(|err| CodeReturnValueError::InvalidType {
+                code_name: self.name.clone(),
+                field_name: field_name.to_owned(),
+                invalid_type_hint: expected_type_hint.to_owned(),
+                err: format!("{}", err),
+                value_returned: format!("{}", action),
+            })?)
+    }
+
+    pub fn tick(
+        &self,
+        player_info: PlayerInformation,
+    ) -> Result<PlayerAction, CodeReturnValueError> {
+        Python::attach(|py| -> Result<PlayerAction, CodeReturnValueError> {
+            // TODO check update existence
+            let data = PyDict::new(py);
+            data.set_item("my_position", player_info.my_position)
+                .unwrap();
+            data.set_item("friend_position", player_info.friend_position)
+                .unwrap();
+            data.set_item("enemy1_position", player_info.enemy1_position)
+                .unwrap();
+            data.set_item("enemy2_position", player_info.enemy2_position)
+                .unwrap();
+            data.set_item("ball_position", player_info.ball_position)
+                .unwrap();
+            let action = self
+                .activator
+                .getattr(py, "update")
+                .unwrap()
+                .call1(py, (data,))
+                .map_err(|err| CodeReturnValueError::PlayerCodeException {
+                    code_name: self.name.clone(),
+                    err: format!("{}", err),
+                })?;
+
+            let dict =
+                action
+                    .cast_bound::<PyDict>(py)
+                    .map_err(|err| CodeReturnValueError::NoDict {
+                        code_name: self.name.clone(),
+                        err: format!("{}", err),
+                        value_returned: format!("{}", action),
+                    })?;
+            if dict.len() != 3 {
+                println!(
+                    "WARN: Le dictionnaire de retour n'a pas le nombre exact d'arguments requis"
+                );
+            }
+
+            let target_position: (f32, f32) = self.dict_extract(
+                &action,
+                dict,
+                "target_position",
+                "un tuple `(float, float)`",
+            )?;
+            let power: u8 =
+                self.dict_extract(&action, dict, "power", "un entier entre 0 et 255")?;
+            let target_orientation: f32 = self.dict_extract(
+                &action,
+                dict,
+                "target_orientation",
+                "un float entre 0 et 360",
+            )?;
+
+            if !(0.0 <= target_orientation && target_orientation <= 360.0) {
+                return Err(CodeReturnValueError::InvalidType {
+                    code_name: self.name.clone(),
+                    field_name: "target_orientation".to_owned(),
+                    invalid_type_hint: "un float compris entre 0 et 360".to_owned(),
+                    err: format!("c'est {}", target_orientation),
+                    value_returned: format!("{}", action),
+                });
+            }
+
+            Ok(PlayerAction {
+                target_position,
+                power,
+                target_orientation,
+            })
+        })
+    }
+}

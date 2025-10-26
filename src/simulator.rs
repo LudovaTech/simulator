@@ -1,7 +1,7 @@
 use crate::{
     game_referee::{GameReferee, RefereeAction},
     infos,
-    player_action::PlayerCode,
+    player_action::{CodeReturnValueError, PlayerCode, PlayerInformation},
     robot::{RobotBuilder, RobotHandler},
 };
 use core::f32;
@@ -213,17 +213,27 @@ impl Simulator {
 
 impl Simulator {
     pub fn tick(&mut self) {
-        // call code
+        // call player code
+        let mut errors: [Option<CodeReturnValueError>; 4] = Default::default();
+        for (n, player) in self.player_code.iter().enumerate() {
+            let action = player.tick(PlayerInformation {
+                my_position: (10.0, 10.0),
+                friend_position: (10.0, 10.0),
+                enemy1_position: (10.0, 10.0),
+                enemy2_position: (10.0, 10.0),
+                ball_position: (10.0, 10.0),
+            });
+            match action {
+                Err(err) => errors[n] = Some(err),
+                Ok(action) => {
+                    // do things
+                    println!("{:?}", action)
+                }
+            }
+        }
 
-        // my_position,
-        // friend_position,
-        // enemy1_position,
-        // enemy2_position,
-        // ball_position,
-        let [player1, player2] = &self.player_code;
-        // player1.tick(
-        //     self.rigid_body_set[]
-        // );
+        println!("err {:?}", errors);
+        
         // physic step
         self.physics_pipeline.step(
             &self.gravity,

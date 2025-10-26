@@ -14,7 +14,7 @@ use rerun::external::{
     arrow, eframe, egui, re_crash_handler, re_grpc_server, re_log, re_viewer,
 };
 
-use crate::player_action::{CodeValidationError, PlayerActionPython, PlayerCode, validate_path};
+use crate::player_action::{CodeValidationError, PlayerCodePython, PlayerCode, validate_path};
 use crate::robot::RobotBuilder;
 use crate::{
     infos, robot::RobotHandler, simulator::Simulator,
@@ -295,7 +295,7 @@ impl AppConfiguration {
                             ui.label(RichText::new(format!("{err_message}")).color(Color32::ORANGE));
                         }
                     },
-                    TeamConfigState::Valid(PlayerCode::Python(PlayerActionPython { name, path, ..})) => {
+                    TeamConfigState::Valid(PlayerCode::Python(PlayerCodePython { name, path, ..})) => {
                         ui.heading(format!("Equipe {name} :"));
                         ui.label(format!("code source : {}", path));
                         if ui.button(format!("enlever {}", name)).clicked() {
