@@ -1,18 +1,14 @@
 use std::{
-    collections::HashMap,
     ffi::CStr,
     fmt::{Debug, Display},
     path::Path,
 };
 
 use pyo3::{
-    exceptions,
-    types::{PyAnyMethods, PyModule, PyType},
-    Py, Python,
+    Py, Python, exceptions,
+    types::{PyAnyMethods, PyModule},
 };
-use rapier2d::prelude::{RigidBody, RigidBodyHandle};
 
-use crate::simulator::Simulator;
 
 #[derive(Debug)]
 pub enum PlayerCode {
@@ -37,7 +33,7 @@ impl PlayerCode {
     #[inline]
     pub fn name(&self) -> &str {
         match self {
-            PlayerCode::Python(PlayerActionPython { name, .. }) => name
+            PlayerCode::Python(PlayerActionPython { name, .. }) => name,
         }
     }
 
@@ -67,10 +63,23 @@ impl Display for CodeValidationError {
             CodeValidationError::Empty => write!(f, "Ce chemin est vide..."),
             CodeValidationError::DoesNotExists => write!(f, "Ce chemin ne mène nulle part :-("),
             CodeValidationError::IsNotAFile => write!(f, "Cela ne ressemble pas à un fichier..."),
-            CodeValidationError::CannotReadFile(err_str) => write!(f, "Je n'arrive pas à lire le fichier : {}", err_str),
-            CodeValidationError::ErrorOnLoadingCode(err_str) => write!(f, "Le code python lève une exception lors de sa lecture : {}", err_str),
-            CodeValidationError::TeamNameIsMissing => write!(f, "Il est nécessaire de spécifier le nom d'équipe dans le code. Pour python donner une variable globale `TEAM_NAME`"),
-            CodeValidationError::TeamNameIncorrect(err_str) => write!(f, "Le nom d'équipe est illisible. Est-ce bien une string ? : {}", err_str),
+            CodeValidationError::CannotReadFile(err_str) => {
+                write!(f, "Je n'arrive pas à lire le fichier : {}", err_str)
+            }
+            CodeValidationError::ErrorOnLoadingCode(err_str) => write!(
+                f,
+                "Le code python lève une exception lors de sa lecture : {}",
+                err_str
+            ),
+            CodeValidationError::TeamNameIsMissing => write!(
+                f,
+                "Il est nécessaire de spécifier le nom d'équipe dans le code. Pour python donner une variable globale `TEAM_NAME`"
+            ),
+            CodeValidationError::TeamNameIncorrect(err_str) => write!(
+                f,
+                "Le nom d'équipe est illisible. Est-ce bien une string ? : {}",
+                err_str
+            ),
         }
     }
 }
@@ -89,16 +98,16 @@ pub fn validate_path(path: &str) -> Result<PlayerCode, CodeValidationError> {
         return Err(CodeValidationError::IsNotAFile);
     }
 
-    let mut file_content =
-        std::fs::read(path).map_err(|err| CodeValidationError::CannotReadFile(format!("{}", err)))?;
+    let mut file_content = std::fs::read(path)
+        .map_err(|err| CodeValidationError::CannotReadFile(format!("{}", err)))?;
 
     file_content.push(b'\0');
     let file_content = CStr::from_bytes_with_nul(&file_content)
         .map_err(|err| CodeValidationError::CannotReadFile(format!("{}", err)))?;
 
-    let file_name = path_obj
-        .file_name()
-        .ok_or_else(|| CodeValidationError::CannotReadFile("unable to read file name".to_owned()))?;
+    let file_name = path_obj.file_name().ok_or_else(|| {
+        CodeValidationError::CannotReadFile("unable to read file name".to_owned())
+    })?;
 
     let file_name = file_name.to_str().ok_or_else(|| {
         CodeValidationError::CannotReadFile("unable to convert file name to valid UTF-8".to_owned())

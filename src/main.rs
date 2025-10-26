@@ -1,10 +1,10 @@
 mod app_ui;
 mod game_referee;
 mod infos;
+mod player_action;
 mod robot;
 mod simulator;
 mod vector_converter;
-mod player_action;
 
 use rerun::external::{re_memory, tokio};
 

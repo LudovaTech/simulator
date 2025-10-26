@@ -1,28 +1,23 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::sync::Arc;
 
 use nalgebra::vector;
 use rerun::external::egui::{Color32, RichText};
-use rerun::external::re_log_types::BlueprintActivationCommand;
-use rerun::external::re_types::blueprint;
 use rerun::external::re_viewer::App;
-use rerun::external::re_viewer_context::TimeControl;
 use rerun::{
-    ArchetypeName, AsComponents, Boxes2D, ComponentDescriptor, LineStrip2D, LineStrips2D,
-    RecordingStream, StoreId,
+    Boxes2D, LineStrips2D,
+    RecordingStream,
 };
-use rerun::{Color, DynamicArchetype, EntityPath, Points2D, Radius, TextLog};
+use rerun::{Color, Points2D, Radius};
 
 use rerun::external::{
-    arrow, eframe, egui, re_chunk_store, re_crash_handler, re_entity_db, re_grpc_server, re_log,
-    re_log_types, re_memory, re_types, re_viewer, tokio,
+    arrow, eframe, egui, re_crash_handler, re_grpc_server, re_log, re_viewer,
 };
 
-use crate::player_action::{validate_path, CodeValidationError, PlayerActionPython, PlayerCode};
+use crate::player_action::{CodeValidationError, PlayerActionPython, PlayerCode, validate_path};
 use crate::robot::RobotBuilder;
 use crate::{
-    infos, robot::RobotHandler, simulator::Simulator, vector_converter::EguiConvertCompatibility,
+    infos, robot::RobotHandler, simulator::Simulator,
 };
 
 const BUTTON_PANEL_WIDTH: f32 = 150.0;
@@ -91,7 +86,9 @@ impl eframe::App for SimulatorApp {
               //     self.rerun_app.update(ctx, frame);
               // }
         };
-        if let Some(signal) = signal && let Configuration(conf) = &mut self.state {
+        if let Some(signal) = signal
+            && let Configuration(conf) = &mut self.state
+        {
             match signal {
                 AppStateMutateSignal::ToRun => self.state = conf.run(),
                 AppStateMutateSignal::ToReRun => self.state = conf.re_run(),
@@ -101,37 +98,26 @@ impl eframe::App for SimulatorApp {
     }
 }
 
-
-
 #[derive(Debug, Default)]
 pub struct AppConfiguration {
     pub team_config: [TeamConfigState; 2],
-}
-
-struct PreInitiatedRerun {
-    pub rerun_app: re_viewer::App,
-    pub rec: RecordingStream,
-}
-
-impl Debug for PreInitiatedRerun {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("PreInitiatedRerun")
-            .finish_non_exhaustive()
-    }
 }
 
 #[derive(Debug)]
 pub enum TeamConfigState {
     Config {
         path: String,
-        err_message: Option<CodeValidationError>
-        },
+        err_message: Option<CodeValidationError>,
+    },
     Valid(PlayerCode),
 }
 
 impl Default for TeamConfigState {
     fn default() -> Self {
-        TeamConfigState::Config { path: String::new(), err_message: None }
+        TeamConfigState::Config {
+            path: String::new(),
+            err_message: None,
+        }
     }
 }
 
@@ -167,7 +153,12 @@ impl Debug for AppReRunning {
 // }
 
 impl AppRunning {
-    fn ui_running(&mut self, ctx: &egui::Context, rerun_app: &mut re_viewer::App, rec: &mut RecordingStream) {
+    fn ui_running(
+        &mut self,
+        ctx: &egui::Context,
+        rerun_app: &mut re_viewer::App,
+        rec: &mut RecordingStream,
+    ) {
         egui::SidePanel::left("SIMULATOR")
             .default_width(300.0)
             .show(ctx, |ui| {
@@ -190,75 +181,80 @@ impl AppRunning {
                     let first_team_name = self.simulation.player_code[0].name();
                     let first_robot = RobotHandler::new(first_team_name, 1);
                     if ui.button("Move Robot A1 Right").clicked() {
-                        self.simulation.rigid_body_set[self.simulation.robot_to_rigid_body_handle
-                            [&first_robot]]
+                        self.simulation.rigid_body_set
+                            [self.simulation.robot_to_rigid_body_handle[&first_robot]]
                             .add_force(vector![100.0, 0.0], true);
                     }
                     if ui.button("Move Robot A1 Left").clicked() {
-                        self.simulation.rigid_body_set[self.simulation.robot_to_rigid_body_handle
-                            [&first_robot]]
+                        self.simulation.rigid_body_set
+                            [self.simulation.robot_to_rigid_body_handle[&first_robot]]
                             .add_force(vector![-100.0, 0.0], true);
                     }
                     if ui.button("Move Robot A1 Up").clicked() {
-                        self.simulation.rigid_body_set[self.simulation.robot_to_rigid_body_handle
-                            [&first_robot]]
+                        self.simulation.rigid_body_set
+                            [self.simulation.robot_to_rigid_body_handle[&first_robot]]
                             .apply_impulse(vector![0.0, -100.0], true);
                     }
                     if ui.button("Move Robot A1 Down").clicked() {
-                        self.simulation.rigid_body_set[self.simulation.robot_to_rigid_body_handle
-                            [&first_robot]]
+                        self.simulation.rigid_body_set
+                            [self.simulation.robot_to_rigid_body_handle[&first_robot]]
                             .apply_impulse(vector![0.0, 100.0], true);
                     }
                 });
                 ui.separator();
                 // if let Some(entity_database) = self.rerun_app.recording_db() {
-                    // let query =
-                    //     re_chunk_store::LatestAtQuery::new(timeline, at)
-                    //re_chunk_store::LatestAtQuery::latest(re_log_types::TimelineName::log_time());
-                    // Print Component Descriptors
-                    // println!("{:?}", entity_database.storage_engine().store().all_components_for_entity(&EntityPath::from_file_path(std::path::Path::new("/ball"))));
-                    // Some({ComponentDescriptor { archetype: Some("rerun.archetypes.Points2D"), component: "Points2D:positions", component_type: Some("rerun.components.Position2D") },
-                    // ComponentDescriptor { archetype: Some("rerun.archetypes.Points2D"), component: "Points2D:colors", component_type: Some("rerun.components.Color") },
-                    // ComponentDescriptor { archetype: Some("rerun.archetypes.Points2D"), component: "Points2D:radii", component_type: Some("rerun.components.Radius") }})
-                    //let time = RecordingStream::now(&self)
-                    // if let Some(blueprint_ctx) = self.rerun_app.blueprint_ctx(&StoreId::new(
-                    //     rerun::StoreKind::Blueprint,
-                    //     APP_ID,
-                    //     self.rec.store_info().unwrap().recording_id().to_string(),
-                    // )) {
-                    //     let time_ctrl = TimeControl::from_blueprint(&blueprint_ctx);
-                    //     println!("time : {:?}", time_ctrl.time());
-                    // } else {
-                    //     println!("notime");
-                    // }
+                // let query =
+                //     re_chunk_store::LatestAtQuery::new(timeline, at)
+                //re_chunk_store::LatestAtQuery::latest(re_log_types::TimelineName::log_time());
+                // Print Component Descriptors
+                // println!("{:?}", entity_database.storage_engine().store().all_components_for_entity(&EntityPath::from_file_path(std::path::Path::new("/ball"))));
+                // Some({ComponentDescriptor { archetype: Some("rerun.archetypes.Points2D"), component: "Points2D:positions", component_type: Some("rerun.components.Position2D") },
+                // ComponentDescriptor { archetype: Some("rerun.archetypes.Points2D"), component: "Points2D:colors", component_type: Some("rerun.components.Color") },
+                // ComponentDescriptor { archetype: Some("rerun.archetypes.Points2D"), component: "Points2D:radii", component_type: Some("rerun.components.Radius") }})
+                //let time = RecordingStream::now(&self)
+                // if let Some(blueprint_ctx) = self.rerun_app.blueprint_ctx(&StoreId::new(
+                //     rerun::StoreKind::Blueprint,
+                //     APP_ID,
+                //     self.rec.store_info().unwrap().recording_id().to_string(),
+                // )) {
+                //     let time_ctrl = TimeControl::from_blueprint(&blueprint_ctx);
+                //     println!("time : {:?}", time_ctrl.time());
+                // } else {
+                //     println!("notime");
+                // }
 
-                    // let component_pos = ComponentDescriptor {
-                    //     archetype: Some("rerun.archetypes.Points2D".into()),
-                    //     component: "Points2D:positions".into(),
-                    //     component_type: Some("rerun.components.Position2D".into()),
-                    // };
-                    // let results = entity_database.latest_at(&query, &EntityPath::from_file_path(std::path::Path::new("/ball")), [&component_pos]);
-                    // // println!("result : {:?}", result.get_required(&component_pos).unwrap());
-                    // if let Some(data) = results.component_batch_raw(&component_pos) {
-                    //     egui::ScrollArea::vertical()
-                    //         .auto_shrink([false, true])
-                    //         .show(ui, |ui| {
-                    //             // Iterate over all the instances (e.g. all the points in the point cloud):
+                // let component_pos = ComponentDescriptor {
+                //     archetype: Some("rerun.archetypes.Points2D".into()),
+                //     component: "Points2D:positions".into(),
+                //     component_type: Some("rerun.components.Position2D".into()),
+                // };
+                // let results = entity_database.latest_at(&query, &EntityPath::from_file_path(std::path::Path::new("/ball")), [&component_pos]);
+                // // println!("result : {:?}", result.get_required(&component_pos).unwrap());
+                // if let Some(data) = results.component_batch_raw(&component_pos) {
+                //     egui::ScrollArea::vertical()
+                //         .auto_shrink([false, true])
+                //         .show(ui, |ui| {
+                //             // Iterate over all the instances (e.g. all the points in the point cloud):
 
-                    //             let num_instances = data.len();
-                    //             println!("{:?}", num_instances);
-                    //             for i in 0..num_instances {
-                    //                 ui.label(format_arrow(&*data.slice(i, 1)));
-                    //             }
-                    //         });
-                    // };
+                //             let num_instances = data.len();
+                //             println!("{:?}", num_instances);
+                //             for i in 0..num_instances {
+                //                 ui.label(format_arrow(&*data.slice(i, 1)));
+                //             }
+                //         });
+                // };
                 // }
             });
     }
 }
 
 impl AppReRunning {
-    pub fn ui_re_running(&mut self, ctx: &egui::Context, rerun_app: &mut re_viewer::App, rec: &mut RecordingStream) {
+    pub fn ui_re_running(
+        &mut self,
+        ctx: &egui::Context,
+        rerun_app: &mut re_viewer::App,
+        rec: &mut RecordingStream,
+    ) {
         // TODO
     }
 }
@@ -270,7 +266,12 @@ enum AppStateMutateSignal {
 }
 
 impl AppConfiguration {
-    fn ui_config(&mut self, ctx: &egui::Context, rerun_app: &mut re_viewer::App, rec: &mut RecordingStream) -> Option<AppStateMutateSignal> {
+    fn ui_config(
+        &mut self,
+        ctx: &egui::Context,
+        rerun_app: &mut re_viewer::App,
+        rec: &mut RecordingStream,
+    ) -> Option<AppStateMutateSignal> {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Bienvenue sur le simulateur !");
             ui.label("Sélectionnez l'emplacement du code source des deux équipes");
@@ -289,7 +290,6 @@ impl AppConfiguration {
                                 Err(CodeValidationError::Empty) => TeamConfigState::Config { path: path.to_string(), err_message: None },
                                 Err(err) => TeamConfigState::Config { path: path.to_string(), err_message: Some(err) },
                             }));
-                            
                         }
                         if let Some(err_message) = err_message {
                             ui.label(RichText::new(format!("{err_message}")).color(Color32::ORANGE));
@@ -327,12 +327,15 @@ impl AppConfiguration {
         }).inner
     }
 
-
     /// Mutate the app to run mode
     fn run(&mut self) -> AppState {
         // mem::take replaces the value in self with its default. Usefull as TeamConfigState is not Copy
         let local_configs = std::mem::take(&mut self.team_config);
-        let [TeamConfigState::Valid(mut team1), TeamConfigState::Valid(mut team2)] = local_configs else {
+        let [
+            TeamConfigState::Valid(mut team1),
+            TeamConfigState::Valid(mut team2),
+        ] = local_configs
+        else {
             panic!("Cannot mutate to state run with config {:?}", self);
         };
 
@@ -345,25 +348,26 @@ impl AppConfiguration {
             team1._set_name(&name1);
             team2._set_name(&name2);
         }
-        
-        let simulation = Simulator::new([
-            RobotBuilder::from_basic_robot(&name1, 1, vector!(50.0, 50.0)),
-            RobotBuilder::from_basic_robot(&name1, 2, vector!(50.0, 75.0)),
-            RobotBuilder::from_basic_robot(&name2, 1, vector!(50.0, 100.0)),
-            RobotBuilder::from_basic_robot(&name2, 2, vector!(50.0, 125.0)),
-        ],
-    [team1, team2]);
-        let mut robot_handle_to_color = HashMap::new();
-        robot_handle_to_color
-            .insert(simulation.robots[0].clone(), Color::from_rgb(0, 0, 255));
-        robot_handle_to_color
-            .insert(simulation.robots[1].clone(), Color::from_rgb(255, 255, 255));
-        robot_handle_to_color
-            .insert(simulation.robots[2].clone(), Color::from_rgb(255, 0, 0));
-        robot_handle_to_color
-            .insert(simulation.robots[3].clone(), Color::from_rgb(0, 255, 0));
 
-        Running(AppRunning { simulation, robot_handle_to_color })
+        let simulation = Simulator::new(
+            [
+                RobotBuilder::from_basic_robot(&name1, 1, vector!(50.0, 50.0)),
+                RobotBuilder::from_basic_robot(&name1, 2, vector!(50.0, 75.0)),
+                RobotBuilder::from_basic_robot(&name2, 1, vector!(50.0, 100.0)),
+                RobotBuilder::from_basic_robot(&name2, 2, vector!(50.0, 125.0)),
+            ],
+            [team1, team2],
+        );
+        let mut robot_handle_to_color = HashMap::new();
+        robot_handle_to_color.insert(simulation.robots[0].clone(), Color::from_rgb(0, 0, 255));
+        robot_handle_to_color.insert(simulation.robots[1].clone(), Color::from_rgb(255, 255, 255));
+        robot_handle_to_color.insert(simulation.robots[2].clone(), Color::from_rgb(255, 0, 0));
+        robot_handle_to_color.insert(simulation.robots[3].clone(), Color::from_rgb(0, 255, 0));
+
+        Running(AppRunning {
+            simulation,
+            robot_handle_to_color,
+        })
     }
 
     /// Mutate the app to rerun mode
@@ -388,7 +392,11 @@ impl Debug for SimulatorApp {
 
 impl SimulatorApp {
     pub fn new(rerun_app: App, rec: RecordingStream) -> Self {
-        Self { state: AppState::default(), rerun_app, rec}
+        Self {
+            state: AppState::default(),
+            rerun_app,
+            rec,
+        }
     }
 
     pub async fn start() -> Result<(), Box<dyn std::error::Error>> {
@@ -422,7 +430,7 @@ impl SimulatorApp {
 
         // This is used for analytics, if the `analytics` feature is on in `Cargo.toml`
         let app_env = re_viewer::AppEnvironment::Custom("My Wrapper".to_owned());
-        
+
         eframe::run_native(
             "Simulator",
             native_options,
@@ -437,7 +445,7 @@ impl SimulatorApp {
                     None,
                     re_viewer::AsyncRuntimeHandle::from_current_tokio_runtime_or_wasmbindgen()?,
                 );
-        
+
                 // We mix server and client
                 let rec = rerun::RecordingStreamBuilder::new("simulator")
                     .spawn()
@@ -480,14 +488,13 @@ impl AppRunning {
         self.simulation.tick();
         // draw ball
         let ball_position = self.simulation.position_of_ball();
-        rec
-            .log(
-                "ball",
-                &Points2D::new([[ball_position.x, ball_position.y]])
-                    .with_colors([Color::from_rgb(255, 128, 0)])
-                    .with_radii([Radius::new_scene_units(infos::BALL_RADIUS)]),
-            )
-            .unwrap();
+        rec.log(
+            "ball",
+            &Points2D::new([[ball_position.x, ball_position.y]])
+                .with_colors([Color::from_rgb(255, 128, 0)])
+                .with_radii([Radius::new_scene_units(infos::BALL_RADIUS)]),
+        )
+        .unwrap();
 
         // We accept the performance cost of clone to avoid putting lifetimes everywhere
         for robot_handle in self.simulation.robots.clone() {
@@ -501,14 +508,13 @@ impl AppRunning {
     fn draw_robot(&self, rec: &mut RecordingStream, robot_handle: &RobotHandler) {
         let robot_position = self.simulation.position_of(&robot_handle);
         let robot_position = [robot_position.x, robot_position.y];
-        rec
-            .log(
-                format!("Robot_{robot_handle}/structure"),
-                &Points2D::new([robot_position])
-                    .with_colors([self.robot_handle_to_color[&robot_handle]])
-                    .with_radii([Radius::new_scene_units(infos::ROBOT_RADIUS)]),
-            )
-            .unwrap();
+        rec.log(
+            format!("Robot_{robot_handle}/structure"),
+            &Points2D::new([robot_position])
+                .with_colors([self.robot_handle_to_color[&robot_handle]])
+                .with_radii([Radius::new_scene_units(infos::ROBOT_RADIUS)]),
+        )
+        .unwrap();
 
         // dribbler
         let robot_angle = *self.simulation.rotation_of(&robot_handle);
@@ -526,14 +532,13 @@ impl AppRunning {
                 * robot_angle;
         let p2 = [p2.re + robot_position[0], p2.im + robot_position[1]];
 
-        rec
-            .log(
-                format!("Robot_{robot_handle}/dribbler"),
-                &LineStrips2D::new([[p1, p2]])
-                    .with_radii([Radius::new_scene_units(dribbler_width)])
-                    .with_draw_order(60.0),
-            )
-            .unwrap();
+        rec.log(
+            format!("Robot_{robot_handle}/dribbler"),
+            &LineStrips2D::new([[p1, p2]])
+                .with_radii([Radius::new_scene_units(dribbler_width)])
+                .with_draw_order(60.0),
+        )
+        .unwrap();
     }
 
     fn draw_field(&self, rec: &mut RecordingStream) {
@@ -543,18 +548,17 @@ impl AppRunning {
                 .with_colors([Color::from_rgb(0, 255, 0)]);
         rec.log_static("field", &field_rect).unwrap();
 
-        rec
-            .log_static(
-                "field/boundaries",
-                &[Boxes2D::from_mins_and_sizes(
-                    [[infos::SPACE_BEFORE_LINE_SIDE, infos::SPACE_BEFORE_LINE_SIDE]],
-                    [[
-                        infos::FIELD_DEPTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
-                        infos::FIELD_WIDTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
-                    ]],
-                )],
-            )
-            .unwrap();
+        rec.log_static(
+            "field/boundaries",
+            &[Boxes2D::from_mins_and_sizes(
+                [[infos::SPACE_BEFORE_LINE_SIDE, infos::SPACE_BEFORE_LINE_SIDE]],
+                [[
+                    infos::FIELD_DEPTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
+                    infos::FIELD_WIDTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
+                ]],
+            )],
+        )
+        .unwrap();
 
         // // Left enbut (rounded rectangle outline) - positioned just inside left inner line
         // let left_en_x = infos::SPACE_BEFORE_LINE_SIDE;
