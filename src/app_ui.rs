@@ -178,7 +178,7 @@ impl AppRunning {
                     ));
 
                     ui.add_space(10.0);
-                    let first_team_name = self.simulation.player_code[0].name();
+                    let first_team_name = self.simulation.player_code.keys().next().unwrap();
                     let first_robot = RobotHandler::new(first_team_name, 1);
                     if ui.button("Move Robot A1 Right").clicked() {
                         self.simulation.rigid_body_set
@@ -349,6 +349,10 @@ impl AppConfiguration {
             team2._set_name(&name2);
         }
 
+        let mut teams = HashMap::with_capacity(2);
+        teams.insert(name1.clone(), team1);
+        teams.insert(name2.clone(), team2);
+
         let simulation = Simulator::new(
             [
                 RobotBuilder::from_basic_robot(&name1, 1, vector!(50.0, 50.0)),
@@ -356,7 +360,7 @@ impl AppConfiguration {
                 RobotBuilder::from_basic_robot(&name2, 1, vector!(50.0, 100.0)),
                 RobotBuilder::from_basic_robot(&name2, 2, vector!(50.0, 125.0)),
             ],
-            [team1, team2],
+            teams,
         );
         let mut robot_handle_to_color = HashMap::new();
         robot_handle_to_color.insert(simulation.robots[0].clone(), Color::from_rgb(0, 0, 255));

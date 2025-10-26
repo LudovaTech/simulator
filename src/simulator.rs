@@ -1,14 +1,14 @@
 use crate::{
     game_referee::{GameReferee, RefereeAction},
     infos,
-    player_action::{CodeReturnValueError, PlayerCode, PlayerInformation},
+    player_action::{CodeReturnValueError, PlayerAction, PlayerCode, PlayerInformation},
     robot::{RobotBuilder, RobotHandler},
 };
 use core::f32;
 use crossbeam::channel::Receiver;
 use nalgebra::Vector2;
 use rapier2d::prelude::*;
-use std::collections::HashMap;
+use std::{collections::HashMap, f32::consts::PI};
 
 #[derive(Debug, PartialEq)]
 pub enum FieldWallKind {
@@ -42,7 +42,7 @@ pub struct Simulator {
     pub contact_force_recv: Receiver<ContactForceEvent>,
     // Simulator :
     pub game_referee: GameReferee,
-    pub player_code: [PlayerCode; 2],
+    pub player_code: HashMap<String, PlayerCode>,
     pub ball_rigid_body_handle: RigidBodyHandle,
     pub ball_collider_handle: ColliderHandle,
     pub robots: [RobotHandler; 4],
@@ -104,7 +104,7 @@ pub struct Simulator {
 // }
 
 impl Simulator {
-    pub fn new(robots_builders: [RobotBuilder; 4], player_code: [PlayerCode; 2]) -> Simulator {
+    pub fn new(robots_builders: [RobotBuilder; 4], player_code: HashMap<String, PlayerCode>) -> Simulator {
         let robot_handlers: [RobotHandler; 4] = [
             robots_builders[0].to_robot_handle(),
             robots_builders[1].to_robot_handle(),
@@ -212,11 +212,12 @@ impl Simulator {
 }
 
 impl Simulator {
-    pub fn tick(&mut self) {
+    pub fn tick(&mut self) -> HashMap<RobotHandler, CodeReturnValueError> {
         // call player code
-        let mut errors: [Option<CodeReturnValueError>; 4] = Default::default();
-        for (n, player) in self.player_code.iter().enumerate() {
-            let action = player.tick(PlayerInformation {
+        let mut errors: HashMap<RobotHandler, CodeReturnValueError> = HashMap::new();
+        for robot_handle in self.robots.clone().iter() {
+            let code = &self.player_code[robot_handle.team_name()];
+            let action = code.tick(PlayerInformation {
                 my_position: (10.0, 10.0),
                 friend_position: (10.0, 10.0),
                 enemy1_position: (10.0, 10.0),
@@ -224,15 +225,14 @@ impl Simulator {
                 ball_position: (10.0, 10.0),
             });
             match action {
-                Err(err) => errors[n] = Some(err),
+                Err(err) => {errors.insert(robot_handle.clone(), err);},
                 Ok(action) => {
                     // do things
-                    println!("{:?}", action)
+                    
+                    self.apply_player_forces(&robot_handle, action);
                 }
             }
         }
-
-        println!("err {:?}", errors);
         
         // physic step
         self.physics_pipeline.step(
@@ -260,6 +260,8 @@ impl Simulator {
         if referee_actions.contains(&RefereeAction::NewRound) {
             self.new_round();
         }
+
+        errors
     }
 
     #[inline]
@@ -287,6 +289,31 @@ impl Simulator {
             .rotation()
             .clone()
     }
+
+    #[inline]
+    fn apply_player_forces(&mut self, robot_handle: &RobotHandler, action: PlayerAction) {
+        // Position :
+        let my_pos = self.position_of(robot_handle);
+        let dx = action.target_position.0 - my_pos.x;
+        let dy = action.target_position.1 - my_pos.y;
+        let mut angle = dy.atan2(dx);
+        // if dx < 0.0 {
+        //     angle *= -1.0;
+        // }
+        // Bravo, vous avez trouvé la source de la non-linéarité l'accélération, vous pouvez donc la rectifier
+        let difficult_power = ease_in_out_quad(
+            action.power as f32 / 255.0
+        ) * 20.0; // HERE : power speed
+        self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].apply_impulse(vector![difficult_power * angle.sin(), difficult_power * angle.sin()], true);
+
+        // Rotation :
+
+    }
+}
+
+#[inline]
+fn ease_in_out_quad(x: f32) -> f32 {
+    if x < 0.5 { 2.0 * x * x } else { 1.0 - (-2.0 * x + 2.0).powi(2) / 2.0 }
 }
 
 impl Simulator {

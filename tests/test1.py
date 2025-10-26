@@ -5,11 +5,21 @@ print("Hello!")
 
 import test2
 
+i = 0
 
 def update(data):
-    # print(data)
-    return {
-        "target_position": (0, 0),
-        "power": 150,
-        "target_orientation": 90
-    }
+    global i
+    i += 1
+    print(i)
+    if True:
+        return {
+            "target_position": (0, 0),
+            "power": 100,
+            "target_orientation": 90
+        }
+    else:
+        return {
+            "target_position": (10, 0),
+            "power": 100,
+            "target_orientation": 90
+        }

@@ -15,6 +15,11 @@ impl RobotHandler {
             robot_number,
         }
     }
+
+    #[inline]
+    pub fn team_name(&self) -> &str {
+        &self.team_name
+    }
 }
 
 impl std::fmt::Display for RobotHandler {
