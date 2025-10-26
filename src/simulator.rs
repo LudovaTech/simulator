@@ -167,7 +167,7 @@ impl Simulator {
         let body = RigidBodyBuilder::dynamic()
             .linear_damping(robot_builder.linear_damping)
             .angular_damping(robot_builder.angular_damping)
-            .translation(robot_builder.initial_position)
+            // .translation(robot_builder.initial_position) automatically set by new round
             .build();
         self.rigid_body_set.insert(body)
     }
@@ -296,10 +296,7 @@ impl Simulator {
         let my_pos = self.position_of(robot_handle);
         let dx = action.target_position.0 - my_pos.x;
         let dy = action.target_position.1 - my_pos.y;
-        let mut angle = dy.atan2(dx);
-        // if dx < 0.0 {
-        //     angle *= -1.0;
-        // }
+        let angle = dy.atan2(dx);
         // Bravo, vous avez trouvé la source de la non-linéarité l'accélération, vous pouvez donc la rectifier
         let difficult_power = ease_in_out_quad(
             action.power as f32 / 255.0
@@ -409,37 +406,35 @@ impl Simulator {
     }
 
     pub fn new_round(&mut self) {
-        let center: Vector2<f32> = Vector2::new(infos::FIELD_DEPTH / 2.0, infos::FIELD_WIDTH / 2.0);
-
         Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[0]]],
             f32::consts::FRAC_PI_2,
-            center - Vector2::new(infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y),
+            Vector2::new(-infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y),
         );
 
         Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[1]]],
             f32::consts::FRAC_PI_2,
-            center - Vector2::new(infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y),
+            Vector2::new(-infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y),
         );
 
         Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[2]]],
             3.0 * f32::consts::FRAC_PI_2,
-            center + Vector2::new(infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y),
+            Vector2::new(infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y),
         );
 
         Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[3]]],
             3.0 * f32::consts::FRAC_PI_2,
-            center + Vector2::new(infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y),
+            Vector2::new(infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y),
         );
 
         // ball
         Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.ball_rigid_body_handle],
             0.0,
-            center,
+            vector![0.0, 0.0],
         );
     }
 
@@ -452,41 +447,43 @@ impl Simulator {
     }
 
     // TODO refactor plus joliment
-    fn build_field_colliders(&mut self) {
-        let up = ColliderBuilder::cuboid(infos::FIELD_DEPTH, 1.0)
+    fn build_field_colliders(&mut self) { // HERE move (0, 0) to center !
+        let up = ColliderBuilder::cuboid(infos::FIELD_DEPTH / 2.0, 0.5)
+            .translation(vector![0.0, -infos::FIELD_WIDTH / 2.0])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(up);
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::Top);
 
-        let bottom = ColliderBuilder::cuboid(infos::FIELD_DEPTH, 1.0)
-            .translation(vector![0.0, infos::FIELD_WIDTH])
+        let bottom = ColliderBuilder::cuboid(infos::FIELD_DEPTH / 2.0, 0.5)
+            .translation(vector![0.0, infos::FIELD_WIDTH / 2.0])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(bottom);
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::Bottom);
 
-        let left = ColliderBuilder::cuboid(1.0, infos::FIELD_WIDTH)
+        let left = ColliderBuilder::cuboid(0.5, infos::FIELD_WIDTH / 2.0)
+            .translation(vector![-infos::FIELD_DEPTH / 2.0, 0.0])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(left);
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::Left);
 
-        let right = ColliderBuilder::cuboid(1.0, infos::FIELD_WIDTH)
-            .translation(vector![infos::FIELD_DEPTH, 0.0])
+        let right = ColliderBuilder::cuboid(0.5, infos::FIELD_WIDTH / 2.0)
+            .translation(vector![infos::FIELD_DEPTH / 2.0, 0.0])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(right);
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::Right);
 
-        let goal_left_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+        let goal_left_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE / 2.0, 0.5)
             .translation(vector![
-                0.0,
-                (infos::FIELD_WIDTH / 2.0) - (infos::GOAL_WIDTH / 2.0)
+                -infos::FIELD_DEPTH / 2.0 + infos::SPACE_BEFORE_LINE_SIDE / 2.0,
+                -infos::GOAL_WIDTH / 2.0
             ])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
@@ -494,10 +491,10 @@ impl Simulator {
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::GoalLeftUp);
 
-        let goal_left_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+        let goal_left_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE / 2.0, 0.5)
             .translation(vector![
-                0.0,
-                (infos::FIELD_WIDTH / 2.0) + (infos::GOAL_WIDTH / 2.0)
+                -infos::FIELD_DEPTH / 2.0 + infos::SPACE_BEFORE_LINE_SIDE / 2.0,
+                infos::GOAL_WIDTH / 2.0
             ])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
@@ -505,10 +502,10 @@ impl Simulator {
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::GoalLeftDown);
 
-        let goal_right_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+        let goal_right_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE / 2.0, 0.5)
             .translation(vector![
-                infos::FIELD_DEPTH,
-                (infos::FIELD_WIDTH / 2.0) - (infos::GOAL_WIDTH / 2.0)
+                infos::FIELD_DEPTH / 2.0 - infos::SPACE_BEFORE_LINE_SIDE / 2.0,
+                -infos::GOAL_WIDTH / 2.0
             ])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
@@ -516,10 +513,10 @@ impl Simulator {
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::GoalRightUp);
 
-        let goal_right_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+        let goal_right_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE / 2.0, 0.5)
             .translation(vector![
-                infos::FIELD_DEPTH,
-                (infos::FIELD_WIDTH / 2.0) + (infos::GOAL_WIDTH / 2.0)
+                infos::FIELD_DEPTH / 2.0 - infos::SPACE_BEFORE_LINE_SIDE / 2.0,
+                infos::GOAL_WIDTH / 2.0
             ])
             .restitution(infos::BORDER_RESTITUTION)
             .build();

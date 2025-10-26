@@ -31,7 +31,7 @@ impl std::fmt::Display for RobotHandler {
 pub struct RobotBuilder {
     pub team_name: String,
     pub robot_number: u8,
-    pub initial_position: Vector2<f32>,
+    // pub initial_position: Vector2<f32>,
     pub friction: f32,
     pub linear_damping: f32,
     pub angular_damping: f32,
@@ -51,12 +51,10 @@ impl RobotBuilder {
     pub fn from_basic_robot(
         team_name: &str,
         robot_number: u8,
-        initial_position: Vector2<f32>,
     ) -> Self {
         RobotBuilder {
             team_name: team_name.to_owned(),
             robot_number,
-            initial_position,
             friction: infos::ROBOT_FRICTION,
             linear_damping: infos::ROBOT_LINEAR_DAMPING,
             angular_damping: infos::ROBOT_ANGULAR_DAMPING,

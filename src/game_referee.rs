@@ -25,10 +25,7 @@ impl GameReferee {
         // On considére que le fait que la balle a touché le mur du fond
         // car cela a déjà été vérifié (dans process_collisions)
         // On ne vérifie donc que la position y de la balle
-        if (((infos::FIELD_WIDTH / 2.0) - (infos::GOAL_WIDTH / 2.0))
-            ..(infos::FIELD_WIDTH / 2.0) + (infos::GOAL_WIDTH / 2.0))
-            .contains(&position_of_ball.y)
-        {
+        if ((-infos::GOAL_WIDTH / 2.0)..(infos::GOAL_WIDTH / 2.0)).contains(&position_of_ball.y) {
             // GOAL
             match wall {
                 FieldWallKind::Left => self.score_team_left += 1,

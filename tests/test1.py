@@ -12,6 +12,7 @@ def update(data):
     i += 1
     print(i)
     if True:
+        return None
         return {
             "target_position": (0, 0),
             "power": 100,

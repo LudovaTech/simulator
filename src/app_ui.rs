@@ -183,12 +183,12 @@ impl AppRunning {
                     if ui.button("Move Robot A1 Right").clicked() {
                         self.simulation.rigid_body_set
                             [self.simulation.robot_to_rigid_body_handle[&first_robot]]
-                            .add_force(vector![100.0, 0.0], true);
+                            .apply_impulse(vector![100.0, 0.0], true);
                     }
                     if ui.button("Move Robot A1 Left").clicked() {
                         self.simulation.rigid_body_set
                             [self.simulation.robot_to_rigid_body_handle[&first_robot]]
-                            .add_force(vector![-100.0, 0.0], true);
+                            .apply_impulse(vector![-100.0, 0.0], true);
                     }
                     if ui.button("Move Robot A1 Up").clicked() {
                         self.simulation.rigid_body_set
@@ -355,10 +355,10 @@ impl AppConfiguration {
 
         let simulation = Simulator::new(
             [
-                RobotBuilder::from_basic_robot(&name1, 1, vector!(50.0, 50.0)),
-                RobotBuilder::from_basic_robot(&name1, 2, vector!(50.0, 75.0)),
-                RobotBuilder::from_basic_robot(&name2, 1, vector!(50.0, 100.0)),
-                RobotBuilder::from_basic_robot(&name2, 2, vector!(50.0, 125.0)),
+                RobotBuilder::from_basic_robot(&name1, 1),
+                RobotBuilder::from_basic_robot(&name1, 2),
+                RobotBuilder::from_basic_robot(&name2, 1),
+                RobotBuilder::from_basic_robot(&name2, 2),
             ],
             teams,
         );
@@ -556,7 +556,7 @@ impl AppRunning {
         rec.log_static(
             "field/boundaries",
             &[Boxes2D::from_mins_and_sizes(
-                [[(-infos::FIELD_DEPTH + infos::SPACE_BEFORE_LINE_SIDE) / 2.0, (-infos::FIELD_WIDTH + infos::SPACE_BEFORE_LINE_SIDE) / 2.0]],
+                [[-infos::FIELD_DEPTH / 2.0 + infos::SPACE_BEFORE_LINE_SIDE, -infos::FIELD_WIDTH / 2.0 + infos::SPACE_BEFORE_LINE_SIDE]],
                 [[
                     infos::FIELD_DEPTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
                     infos::FIELD_WIDTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
