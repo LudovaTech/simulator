@@ -2,7 +2,7 @@ use crate::{
     game_referee::{GameReferee, RefereeAction},
     infos,
     robot::{RobotBuilder, RobotHandler},
-    player_action::PlayerAction,
+    player_action::PlayerCode,
 };
 use core::f32;
 use crossbeam::channel::Receiver;
@@ -42,7 +42,7 @@ pub struct Simulator {
     pub contact_force_recv: Receiver<ContactForceEvent>,
     // Simulator :
     pub game_referee: GameReferee,
-    pub player_action: [PlayerAction; 2],
+    pub player_code: [PlayerCode; 2],
     pub ball_rigid_body_handle: RigidBodyHandle,
     pub ball_collider_handle: ColliderHandle,
     pub robots: [RobotHandler; 4],
@@ -51,59 +51,60 @@ pub struct Simulator {
     pub collider_to_field_wall: HashMap<ColliderHandle, FieldWallKind>,
 }
 
-impl Default for Simulator {
-    fn default() -> Self {
-        Simulator::new([
-            RobotBuilder {
-                team_name: "A".to_owned(),
-                robot_number: 1,
-                initial_position: vector!(50.0, 50.0),
-                friction: infos::ROBOT_FRICTION,
-                linear_damping: infos::ROBOT_LINEAR_DAMPING,
-                angular_damping: infos::ROBOT_ANGULAR_DAMPING,
-                restitution: infos::ROBOT_RESTITUTION,
-                mass: infos::ROBOT_MASS,
-                radius: infos::ROBOT_RADIUS,
-            },
-            RobotBuilder {
-                team_name: "A".to_owned(),
-                robot_number: 2,
-                initial_position: vector!(50.0, 75.0),
-                friction: infos::ROBOT_FRICTION,
-                linear_damping: infos::ROBOT_LINEAR_DAMPING,
-                angular_damping: infos::ROBOT_ANGULAR_DAMPING,
-                restitution: infos::ROBOT_RESTITUTION,
-                mass: infos::ROBOT_MASS,
-                radius: infos::ROBOT_RADIUS,
-            },
-            RobotBuilder {
-                team_name: "B".to_owned(),
-                robot_number: 1,
-                initial_position: vector!(50.0, 100.0),
-                friction: infos::ROBOT_FRICTION,
-                linear_damping: infos::ROBOT_LINEAR_DAMPING,
-                angular_damping: infos::ROBOT_ANGULAR_DAMPING,
-                restitution: infos::ROBOT_RESTITUTION,
-                mass: infos::ROBOT_MASS,
-                radius: infos::ROBOT_RADIUS,
-            },
-            RobotBuilder {
-                team_name: "B".to_owned(),
-                robot_number: 2,
-                initial_position: vector!(50.0, 125.0),
-                friction: infos::ROBOT_FRICTION,
-                linear_damping: infos::ROBOT_LINEAR_DAMPING,
-                angular_damping: infos::ROBOT_ANGULAR_DAMPING,
-                restitution: infos::ROBOT_RESTITUTION,
-                mass: infos::ROBOT_MASS,
-                radius: infos::ROBOT_RADIUS,
-            },
-        ])
-    }
-}
+// impl Default for Simulator {
+//     fn default() -> Self {
+//         println!("!! for debugging only");
+//         Simulator::new([
+//             RobotBuilder {
+//                 team_name: "A".to_owned(),
+//                 robot_number: 1,
+//                 initial_position: vector!(50.0, 50.0),
+//                 friction: infos::ROBOT_FRICTION,
+//                 linear_damping: infos::ROBOT_LINEAR_DAMPING,
+//                 angular_damping: infos::ROBOT_ANGULAR_DAMPING,
+//                 restitution: infos::ROBOT_RESTITUTION,
+//                 mass: infos::ROBOT_MASS,
+//                 radius: infos::ROBOT_RADIUS,
+//             },
+//             RobotBuilder {
+//                 team_name: "A".to_owned(),
+//                 robot_number: 2,
+//                 initial_position: vector!(50.0, 75.0),
+//                 friction: infos::ROBOT_FRICTION,
+//                 linear_damping: infos::ROBOT_LINEAR_DAMPING,
+//                 angular_damping: infos::ROBOT_ANGULAR_DAMPING,
+//                 restitution: infos::ROBOT_RESTITUTION,
+//                 mass: infos::ROBOT_MASS,
+//                 radius: infos::ROBOT_RADIUS,
+//             },
+//             RobotBuilder {
+//                 team_name: "B".to_owned(),
+//                 robot_number: 1,
+//                 initial_position: vector!(50.0, 100.0),
+//                 friction: infos::ROBOT_FRICTION,
+//                 linear_damping: infos::ROBOT_LINEAR_DAMPING,
+//                 angular_damping: infos::ROBOT_ANGULAR_DAMPING,
+//                 restitution: infos::ROBOT_RESTITUTION,
+//                 mass: infos::ROBOT_MASS,
+//                 radius: infos::ROBOT_RADIUS,
+//             },
+//             RobotBuilder {
+//                 team_name: "B".to_owned(),
+//                 robot_number: 2,
+//                 initial_position: vector!(50.0, 125.0),
+//                 friction: infos::ROBOT_FRICTION,
+//                 linear_damping: infos::ROBOT_LINEAR_DAMPING,
+//                 angular_damping: infos::ROBOT_ANGULAR_DAMPING,
+//                 restitution: infos::ROBOT_RESTITUTION,
+//                 mass: infos::ROBOT_MASS,
+//                 radius: infos::ROBOT_RADIUS,
+//             },
+//         ])
+//     }
+// }
 
 impl Simulator {
-    pub fn new(robots_builders: [RobotBuilder; 4]) -> Simulator {
+    pub fn new(robots_builders: [RobotBuilder; 4], player_code: [PlayerCode; 2]) -> Simulator {
         let robot_handlers: [RobotHandler; 4] = [
             robots_builders[0].to_robot_handle(),
             robots_builders[1].to_robot_handle(),
@@ -132,7 +133,7 @@ impl Simulator {
             contact_force_recv,
             // Simulator :
             game_referee: GameReferee::default(),
-            player_action: Default::default(),
+            player_code,
             ball_rigid_body_handle: RigidBodyHandle::invalid(),
             ball_collider_handle: ColliderHandle::invalid(),
             robots: robot_handlers,
@@ -219,7 +220,7 @@ impl Simulator {
         // enemy1_position,
         // enemy2_position,
         // ball_position,
-        let [player1, player2] = &self.player_action;
+        let [player1, player2] = &self.player_code;
         // player1.tick(
         //     self.rigid_body_set[]
         // );
@@ -275,14 +276,6 @@ impl Simulator {
         self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]]
             .rotation()
             .clone()
-    }
-
-    #[inline]
-    pub fn are_all_teams_ready(&self) -> bool {
-        !self
-            .player_action
-            .iter()
-            .any(|pa| matches!(pa, PlayerAction::Invalid { .. }))
     }
 }
 
