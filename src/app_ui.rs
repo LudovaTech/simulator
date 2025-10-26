@@ -546,16 +546,17 @@ impl AppRunning {
     }
 
     fn draw_field(&self, rec: &mut RecordingStream) {
+        // Remember, (0, 0) at center of field
         // Field rect (filled green)
         let field_rect =
-            Boxes2D::from_mins_and_sizes([[0.0, 0.0]], [[infos::FIELD_DEPTH, infos::FIELD_WIDTH]])
+            Boxes2D::from_mins_and_sizes([[-infos::FIELD_DEPTH / 2.0, -infos::FIELD_WIDTH / 2.0]], [[infos::FIELD_DEPTH, infos::FIELD_WIDTH]])
                 .with_colors([Color::from_rgb(0, 255, 0)]);
         rec.log_static("field", &field_rect).unwrap();
 
         rec.log_static(
             "field/boundaries",
             &[Boxes2D::from_mins_and_sizes(
-                [[infos::SPACE_BEFORE_LINE_SIDE, infos::SPACE_BEFORE_LINE_SIDE]],
+                [[(-infos::FIELD_DEPTH + infos::SPACE_BEFORE_LINE_SIDE) / 2.0, (-infos::FIELD_WIDTH + infos::SPACE_BEFORE_LINE_SIDE) / 2.0]],
                 [[
                     infos::FIELD_DEPTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
                     infos::FIELD_WIDTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
