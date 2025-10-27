@@ -217,12 +217,14 @@ impl Simulator {
         let mut errors: HashMap<RobotHandler, CodeReturnValueError> = HashMap::new();
         for robot_handle in self.robots.clone().iter() {
             let code = &self.player_code[robot_handle.team_name()];
+            let my_pos = self.position_of(robot_handle);
+            let ball_pos = self.position_of_ball();
             let action = code.tick(PlayerInformation {
-                my_position: (10.0, 10.0),
+                my_position: (my_pos.x, my_pos.y),
                 friend_position: (10.0, 10.0),
                 enemy1_position: (10.0, 10.0),
                 enemy2_position: (10.0, 10.0),
-                ball_position: (10.0, 10.0),
+                ball_position: (ball_pos.x, ball_pos.y),
             });
             match action {
                 Err(err) => {errors.insert(robot_handle.clone(), err);},
@@ -301,7 +303,7 @@ impl Simulator {
         let difficult_power = ease_in_out_quad(
             action.power as f32 / 255.0
         ) * 20.0; // HERE : power speed
-        self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].apply_impulse(vector![difficult_power * angle.sin(), difficult_power * angle.sin()], true);
+        self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].apply_impulse(vector![difficult_power * angle.cos(), difficult_power * angle.sin()], true);
 
         // Rotation :
 
@@ -446,8 +448,8 @@ impl Simulator {
         (*rigid_body).set_translation(translation, true);
     }
 
-    // TODO refactor plus joliment
-    fn build_field_colliders(&mut self) { // HERE move (0, 0) to center !
+    
+    fn build_field_colliders(&mut self) {
         let up = ColliderBuilder::cuboid(infos::FIELD_DEPTH / 2.0, 0.5)
             .translation(vector![0.0, -infos::FIELD_WIDTH / 2.0])
             .restitution(infos::BORDER_RESTITUTION)

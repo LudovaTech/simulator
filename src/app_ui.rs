@@ -4,21 +4,14 @@ use std::fmt::Debug;
 use nalgebra::vector;
 use rerun::external::egui::{Color32, RichText};
 use rerun::external::re_viewer::App;
-use rerun::{
-    Boxes2D, LineStrips2D,
-    RecordingStream,
-};
+use rerun::{Boxes2D, LineStrips2D, RecordingStream};
 use rerun::{Color, Points2D, Radius};
 
-use rerun::external::{
-    arrow, eframe, egui, re_crash_handler, re_grpc_server, re_log, re_viewer,
-};
+use rerun::external::{arrow, eframe, egui, re_crash_handler, re_grpc_server, re_log, re_viewer};
 
-use crate::player_action::{CodeValidationError, PlayerCodePython, PlayerCode, validate_path};
+use crate::player_action::{CodeValidationError, PlayerCode, PlayerCodePython, validate_path};
 use crate::robot::RobotBuilder;
-use crate::{
-    infos, robot::RobotHandler, simulator::Simulator,
-};
+use crate::{infos, robot::RobotHandler, simulator::Simulator};
 
 const BUTTON_PANEL_WIDTH: f32 = 150.0;
 
@@ -548,26 +541,81 @@ impl AppRunning {
     fn draw_field(&self, rec: &mut RecordingStream) {
         // Remember, (0, 0) at center of field
         // Field rect (filled green)
-        let field_rect =
-            Boxes2D::from_mins_and_sizes([[-infos::FIELD_DEPTH / 2.0, -infos::FIELD_WIDTH / 2.0]], [[infos::FIELD_DEPTH, infos::FIELD_WIDTH]])
-                .with_colors([Color::from_rgb(0, 255, 0)]);
+        let field_rect = Boxes2D::from_mins_and_sizes(
+            [[-infos::FIELD_DEPTH / 2.0, -infos::FIELD_WIDTH / 2.0]],
+            [[infos::FIELD_DEPTH, infos::FIELD_WIDTH]],
+        )
+        .with_colors([Color::from_rgb(0, 255, 0)]);
+
         rec.log_static("field", &field_rect).unwrap();
 
-        rec.log_static(
-            "field/boundaries",
-            &[Boxes2D::from_mins_and_sizes(
-                [[-infos::FIELD_DEPTH / 2.0 + infos::SPACE_BEFORE_LINE_SIDE, -infos::FIELD_WIDTH / 2.0 + infos::SPACE_BEFORE_LINE_SIDE]],
-                [[
-                    infos::FIELD_DEPTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
-                    infos::FIELD_WIDTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
-                ]],
-            )],
+        let field_boundaries = Boxes2D::from_mins_and_sizes(
+            [[
+                -infos::FIELD_DEPTH / 2.0 + infos::SPACE_BEFORE_LINE_SIDE,
+                -infos::FIELD_WIDTH / 2.0 + infos::SPACE_BEFORE_LINE_SIDE,
+            ]],
+            [[
+                infos::FIELD_DEPTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
+                infos::FIELD_WIDTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
+            ]],
         )
-        .unwrap();
+        .with_colors([Color::from_rgb(255, 255, 255)]);
 
-        // // Left enbut (rounded rectangle outline) - positioned just inside left inner line
+        rec.log_static("field/boundaries", &[field_boundaries])
+            .unwrap();
+
+        let goal_left_up = LineStrips2D::new([[
+            [-infos::FIELD_DEPTH / 2.0, -infos::GOAL_WIDTH / 2.0],
+            [
+                -infos::FIELD_DEPTH / 2.0 + infos::SPACE_BEFORE_LINE_SIDE,
+                -infos::GOAL_WIDTH / 2.0,
+            ],
+        ]])
+        .with_colors([Color::from_rgb(255, 255, 255)]);
+        let goal_left_down = LineStrips2D::new([[
+            [-infos::FIELD_DEPTH / 2.0, infos::GOAL_WIDTH / 2.0],
+            [
+                -infos::FIELD_DEPTH / 2.0 + infos::SPACE_BEFORE_LINE_SIDE,
+                infos::GOAL_WIDTH / 2.0,
+            ],
+        ]])
+        .with_colors([Color::from_rgb(255, 255, 255)]);
+        let goal_right_up = LineStrips2D::new([[
+            [infos::FIELD_DEPTH / 2.0, -infos::GOAL_WIDTH / 2.0],
+            [
+                infos::FIELD_DEPTH / 2.0 - infos::SPACE_BEFORE_LINE_SIDE,
+                -infos::GOAL_WIDTH / 2.0,
+            ],
+        ]])
+        .with_colors([Color::from_rgb(255, 255, 255)]);
+        let goal_right_down = LineStrips2D::new([[
+            [infos::FIELD_DEPTH / 2.0, infos::GOAL_WIDTH / 2.0],
+            [
+                infos::FIELD_DEPTH / 2.0 - infos::SPACE_BEFORE_LINE_SIDE,
+                infos::GOAL_WIDTH / 2.0,
+            ],
+        ]])
+        .with_colors([Color::from_rgb(255, 255, 255)]);
+        rec.log_static("field/goals/right-up", &[goal_right_up])
+            .unwrap();
+        rec.log_static("field/goals/right-down", &[goal_right_down])
+            .unwrap();
+        rec.log_static("field/goals/left-up", &[goal_left_up])
+            .unwrap();
+        rec.log_static("field/goals/left-down", &[goal_left_down])
+            .unwrap();
+
+        // Left enbut (rounded rectangle outline) - positioned just inside left inner line
         // let left_en_x = infos::SPACE_BEFORE_LINE_SIDE;
         // let left_en_y = ((infos::FIELD_WIDTH - infos::ENBUT_WIDTH) / 2.0);
+
+        // let enbut_left = Boxes2D::from_mins_and_sizes(
+        //     [[]],
+        //     [[
+        //         infos::FIELD_DEPTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
+        //         infos::FIELD_WIDTH - 2.0 * infos::SPACE_BEFORE_LINE_SIDE,
+        //     ]],
+        // ).with_colors([Color::from_rgb(255, 255, 255)]);
         // let left_infos::ENBUT_RADIUSect = Rect2D::from_min_size(
         //     [left_en_x, left_en_y],
         //     [infos::ENBUT_DEPTH, infos::ENBUT_WIDTH],
@@ -594,31 +642,6 @@ impl AppRunning {
         //     infos::ENBUT_RADIUS,
         //     2.0,
         //     [1.0, 1.0, 1.0, 1.0],
-        // );
-
-        // // Goal sizes: x thickness = (SPACE_BEFORE_LINE_SIDE * scale) - stroke.width/2
-        // let goal_thickness = (infos::SPACE_BEFORE_LINE_SIDE * scale) - stroke_w / 2.0;
-        // let goal_size = [goal_thickness, infos::GOAL_WIDTH];
-
-        // // Left goal (yellow) at field left edge, vertically centered
-        // let left_goal_pos = [ox, ((infos::FIELD_WIDTH - infos::GOAL_WIDTH) / 2.0)];
-        // let left_goal_rect = Rect2D::from_min_size(left_goal_pos, goal_size);
-        // self.rec.log_rect(
-        //     &format!("{}/goal/left", entity_path),
-        //     &left_goal_rect,
-        //     comp::Mesh::SolidColor([1.0, 1.0, 0.0, 1.0]), // yellow
-        // );
-
-        // // Right goal (blue)
-        // let right_goal_pos = [
-        //     infos::FIELD_DEPTH - goal_thickness,
-        //     ((infos::FIELD_WIDTH - infos::GOAL_WIDTH) / 2.0),
-        // ];
-        // let right_goal_rect = Rect2D::from_min_size(right_goal_pos, goal_size);
-        // self.rec.log_rect(
-        //     &format!("{}/goal/right", entity_path),
-        //     &right_goal_rect,
-        //     comp::Mesh::SolidColor([0.0, 0.0, 1.0, 1.0]), // blue
         // );
     }
 }
