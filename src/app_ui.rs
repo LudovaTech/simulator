@@ -4,7 +4,7 @@ use std::fmt::Debug;
 use nalgebra::vector;
 use rerun::external::egui::{Color32, RichText};
 use rerun::external::re_viewer::App;
-use rerun::{Boxes2D, LineStrips2D, RecordingStream};
+use rerun::{Boxes2D, LineStrips2D, RecordingStream, TextLog, TextLogLevel};
 use rerun::{Color, Points2D, Radius};
 
 use rerun::external::{arrow, eframe, egui, re_crash_handler, re_grpc_server, re_log, re_viewer};
@@ -13,9 +13,9 @@ use crate::player_action::{CodeValidationError, PlayerCode, PlayerCodePython, va
 use crate::robot::RobotBuilder;
 use crate::{infos, robot::RobotHandler, simulator::Simulator};
 
-const BUTTON_PANEL_WIDTH: f32 = 150.0;
+const PANEL_WIDTH: f32 = 300.0;
 
-const APP_ID: &str = "simulator_app";
+const APP_ID: &str = "simulator";
 
 #[derive(Debug)]
 pub enum AppState {
@@ -127,9 +127,7 @@ impl Debug for AppRunning {
     }
 }
 
-pub struct AppReRunning {
-    pub rerun_app: re_viewer::App,
-}
+pub struct AppReRunning {}
 
 impl Debug for AppReRunning {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -153,7 +151,7 @@ impl AppRunning {
         rec: &mut RecordingStream,
     ) {
         egui::SidePanel::left("SIMULATOR")
-            .default_width(300.0)
+            .default_width(PANEL_WIDTH)
             .show(ctx, |ui| {
                 ui.add_space(4.0);
                 ui.vertical_centered(|ui| {
@@ -248,7 +246,16 @@ impl AppReRunning {
         rerun_app: &mut re_viewer::App,
         rec: &mut RecordingStream,
     ) {
-        // TODO
+        egui::SidePanel::left("SIMULATOR - REVOIR")
+            .default_width(PANEL_WIDTH)
+            .show(ctx, |ui| {
+                ui.add_space(4.0);
+                ui.vertical_centered(|ui| {
+                    ui.strong("SIMULATOR - revoir");
+                });
+                ui.separator();
+                ui.label("Sélectionnez un fichier depuis le menu rerun ci-contre (logo R).")
+            });
     }
 }
 
@@ -369,7 +376,7 @@ impl AppConfiguration {
 
     /// Mutate the app to rerun mode
     fn re_run(&mut self) -> AppState {
-        todo!()
+        ReRunning(AppReRunning {})
     }
 }
 
@@ -444,7 +451,8 @@ impl SimulatorApp {
                 );
 
                 // We mix server and client
-                let rec = rerun::RecordingStreamBuilder::new("simulator")
+                let rec = rerun::RecordingStreamBuilder::new(APP_ID)
+                    .recording_id(APP_ID) // for symplicity we keep the same ID for recording as application_id
                     .spawn()
                     .unwrap();
                 rerun_app.add_log_receiver(rx);
@@ -482,7 +490,20 @@ impl AppRunning {
     }
 
     fn tick(&mut self, rec: &mut RecordingStream) {
-        self.simulation.tick();
+        let errors = self.simulation.tick();
+        if !errors.is_empty() {
+            let logs: Vec<TextLog> = errors
+                .iter()
+                .map(|(robot, error)| {
+                    TextLog::new(format!(
+                        "{} : {}",
+                        robot, error
+                    ))
+                    .with_level(TextLogLevel::ERROR)
+                })
+                .collect();
+            rec.log("simulator_logs/player_code_error", &logs).unwrap();
+        }
         // draw ball
         let ball_position = self.simulation.position_of_ball();
         rec.log(
