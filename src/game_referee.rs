@@ -9,7 +9,6 @@ pub enum RefereeAction {
     NewRound,
 }
 
-
 /// Stocke les données de la partie mais ne modifie pas directement l'action de la partie
 #[derive(Default)]
 pub struct GameReferee {
@@ -18,14 +17,15 @@ pub struct GameReferee {
 }
 
 impl GameReferee {
-    pub fn maybe_goal(&mut self, position_of_ball: &Vector2<f32>, wall: &FieldWallKind) -> RefereeAction {
+    pub fn maybe_goal(
+        &mut self,
+        position_of_ball: &Vector2<f32>,
+        wall: &FieldWallKind,
+    ) -> RefereeAction {
         // On considére que le fait que la balle a touché le mur du fond
         // car cela a déjà été vérifié (dans process_collisions)
         // On ne vérifie donc que la position y de la balle
-        if (((infos::FIELD_WIDTH / 2.0) - (infos::GOAL_WIDTH / 2.0))
-            ..(infos::FIELD_WIDTH / 2.0) + (infos::GOAL_WIDTH / 2.0))
-            .contains(&position_of_ball.y)
-        {
+        if ((-infos::GOAL_WIDTH / 2.0)..(infos::GOAL_WIDTH / 2.0)).contains(&position_of_ball.y) {
             // GOAL
             match wall {
                 FieldWallKind::Left => self.score_team_left += 1,

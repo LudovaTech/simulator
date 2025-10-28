@@ -1,4 +1,5 @@
 use nalgebra::{Complex, Point2, Vector2};
+use rerun::external::egui;
 
 pub trait EguiConvertCompatibility {
     fn to_egui_vec2(&self) -> egui::Vec2;

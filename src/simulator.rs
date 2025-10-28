@@ -1,13 +1,14 @@
 use crate::{
     game_referee::{GameReferee, RefereeAction},
     infos,
+    player_action::{CodeReturnValueError, PlayerAction, PlayerCode, PlayerInformation},
     robot::{RobotBuilder, RobotHandler},
 };
 use core::f32;
 use crossbeam::channel::Receiver;
 use nalgebra::Vector2;
 use rapier2d::prelude::*;
-use std::collections::HashMap;
+use std::{collections::HashMap, f32::consts::PI};
 
 #[derive(Debug, PartialEq)]
 pub enum FieldWallKind {
@@ -21,7 +22,7 @@ pub enum FieldWallKind {
     GoalRightDown,
 }
 
-pub struct SimulatorApp {
+pub struct Simulator {
     // World (rapier) :
     pub rigid_body_set: RigidBodySet,
     pub collider_set: ColliderSet,
@@ -41,6 +42,7 @@ pub struct SimulatorApp {
     pub contact_force_recv: Receiver<ContactForceEvent>,
     // Simulator :
     pub game_referee: GameReferee,
+    pub player_code: HashMap<String, PlayerCode>,
     pub ball_rigid_body_handle: RigidBodyHandle,
     pub ball_collider_handle: ColliderHandle,
     pub robots: [RobotHandler; 4],
@@ -49,59 +51,60 @@ pub struct SimulatorApp {
     pub collider_to_field_wall: HashMap<ColliderHandle, FieldWallKind>,
 }
 
-impl Default for SimulatorApp {
-    fn default() -> Self {
-        SimulatorApp::new([
-            RobotBuilder {
-                team_name: 'A',
-                robot_number: 1,
-                initial_position: vector!(50.0, 50.0),
-                friction: infos::ROBOT_FRICTION,
-                linear_damping: infos::ROBOT_LINEAR_DAMPING,
-                angular_damping: infos::ROBOT_ANGULAR_DAMPING,
-                restitution: infos::ROBOT_RESTITUTION,
-                mass: infos::ROBOT_MASS,
-                radius: infos::ROBOT_RADIUS,
-            },
-            RobotBuilder {
-                team_name: 'A',
-                robot_number: 2,
-                initial_position: vector!(50.0, 75.0),
-                friction: infos::ROBOT_FRICTION,
-                linear_damping: infos::ROBOT_LINEAR_DAMPING,
-                angular_damping: infos::ROBOT_ANGULAR_DAMPING,
-                restitution: infos::ROBOT_RESTITUTION,
-                mass: infos::ROBOT_MASS,
-                radius: infos::ROBOT_RADIUS,
-            },
-            RobotBuilder {
-                team_name: 'B',
-                robot_number: 1,
-                initial_position: vector!(50.0, 100.0),
-                friction: infos::ROBOT_FRICTION,
-                linear_damping: infos::ROBOT_LINEAR_DAMPING,
-                angular_damping: infos::ROBOT_ANGULAR_DAMPING,
-                restitution: infos::ROBOT_RESTITUTION,
-                mass: infos::ROBOT_MASS,
-                radius: infos::ROBOT_RADIUS,
-            },
-            RobotBuilder {
-                team_name: 'B',
-                robot_number: 2,
-                initial_position: vector!(50.0, 125.0),
-                friction: infos::ROBOT_FRICTION,
-                linear_damping: infos::ROBOT_LINEAR_DAMPING,
-                angular_damping: infos::ROBOT_ANGULAR_DAMPING,
-                restitution: infos::ROBOT_RESTITUTION,
-                mass: infos::ROBOT_MASS,
-                radius: infos::ROBOT_RADIUS,
-            },
-        ])
-    }
-}
+// impl Default for Simulator {
+//     fn default() -> Self {
+//         println!("!! for debugging only");
+//         Simulator::new([
+//             RobotBuilder {
+//                 team_name: "A".to_owned(),
+//                 robot_number: 1,
+//                 initial_position: vector!(50.0, 50.0),
+//                 friction: infos::ROBOT_FRICTION,
+//                 linear_damping: infos::ROBOT_LINEAR_DAMPING,
+//                 angular_damping: infos::ROBOT_ANGULAR_DAMPING,
+//                 restitution: infos::ROBOT_RESTITUTION,
+//                 mass: infos::ROBOT_MASS,
+//                 radius: infos::ROBOT_RADIUS,
+//             },
+//             RobotBuilder {
+//                 team_name: "A".to_owned(),
+//                 robot_number: 2,
+//                 initial_position: vector!(50.0, 75.0),
+//                 friction: infos::ROBOT_FRICTION,
+//                 linear_damping: infos::ROBOT_LINEAR_DAMPING,
+//                 angular_damping: infos::ROBOT_ANGULAR_DAMPING,
+//                 restitution: infos::ROBOT_RESTITUTION,
+//                 mass: infos::ROBOT_MASS,
+//                 radius: infos::ROBOT_RADIUS,
+//             },
+//             RobotBuilder {
+//                 team_name: "B".to_owned(),
+//                 robot_number: 1,
+//                 initial_position: vector!(50.0, 100.0),
+//                 friction: infos::ROBOT_FRICTION,
+//                 linear_damping: infos::ROBOT_LINEAR_DAMPING,
+//                 angular_damping: infos::ROBOT_ANGULAR_DAMPING,
+//                 restitution: infos::ROBOT_RESTITUTION,
+//                 mass: infos::ROBOT_MASS,
+//                 radius: infos::ROBOT_RADIUS,
+//             },
+//             RobotBuilder {
+//                 team_name: "B".to_owned(),
+//                 robot_number: 2,
+//                 initial_position: vector!(50.0, 125.0),
+//                 friction: infos::ROBOT_FRICTION,
+//                 linear_damping: infos::ROBOT_LINEAR_DAMPING,
+//                 angular_damping: infos::ROBOT_ANGULAR_DAMPING,
+//                 restitution: infos::ROBOT_RESTITUTION,
+//                 mass: infos::ROBOT_MASS,
+//                 radius: infos::ROBOT_RADIUS,
+//             },
+//         ])
+//     }
+// }
 
-impl SimulatorApp {
-    pub fn new(robots_builders: [RobotBuilder; 4]) -> SimulatorApp {
+impl Simulator {
+    pub fn new(robots_builders: [RobotBuilder; 4], player_code: HashMap<String, PlayerCode>) -> Simulator {
         let robot_handlers: [RobotHandler; 4] = [
             robots_builders[0].to_robot_handle(),
             robots_builders[1].to_robot_handle(),
@@ -110,7 +113,7 @@ impl SimulatorApp {
         ];
         let (collision_sender, collision_recv) = crossbeam::channel::unbounded();
         let (contact_force_sender, contact_force_recv) = crossbeam::channel::unbounded();
-        let mut sim = SimulatorApp {
+        let mut sim = Simulator {
             // World (rapier) :
             rigid_body_set: RigidBodySet::new(),
             collider_set: ColliderSet::new(),
@@ -130,6 +133,7 @@ impl SimulatorApp {
             contact_force_recv,
             // Simulator :
             game_referee: GameReferee::default(),
+            player_code,
             ball_rigid_body_handle: RigidBodyHandle::invalid(),
             ball_collider_handle: ColliderHandle::invalid(),
             robots: robot_handlers,
@@ -158,12 +162,12 @@ impl SimulatorApp {
     }
 }
 
-impl SimulatorApp {
+impl Simulator {
     fn create_rigid_body(&mut self, robot_builder: &RobotBuilder) -> RigidBodyHandle {
         let body = RigidBodyBuilder::dynamic()
             .linear_damping(robot_builder.linear_damping)
             .angular_damping(robot_builder.angular_damping)
-            .translation(robot_builder.initial_position)
+            // .translation(robot_builder.initial_position) automatically set by new round
             .build();
         self.rigid_body_set.insert(body)
     }
@@ -207,8 +211,31 @@ impl SimulatorApp {
     }
 }
 
-impl SimulatorApp {
-    pub fn update(&mut self) {
+impl Simulator {
+    pub fn tick(&mut self) -> HashMap<RobotHandler, CodeReturnValueError> {
+        // call player code
+        let mut errors: HashMap<RobotHandler, CodeReturnValueError> = HashMap::new();
+        for robot_handle in self.robots.clone().iter() {
+            let code = &self.player_code[robot_handle.team_name()];
+            let my_pos = self.position_of(robot_handle);
+            let ball_pos = self.position_of_ball();
+            let action = code.tick(PlayerInformation {
+                my_position: (my_pos.x, my_pos.y),
+                friend_position: (10.0, 10.0),
+                enemy1_position: (10.0, 10.0),
+                enemy2_position: (10.0, 10.0),
+                ball_position: (ball_pos.x, ball_pos.y),
+            });
+            match action {
+                Err(err) => {errors.insert(robot_handle.clone(), err);},
+                Ok(action) => {
+                    // do things
+                    
+                    self.apply_player_forces(&robot_handle, action);
+                }
+            }
+        }
+        
         // physic step
         self.physics_pipeline.step(
             &self.gravity,
@@ -235,6 +262,8 @@ impl SimulatorApp {
         if referee_actions.contains(&RefereeAction::NewRound) {
             self.new_round();
         }
+
+        errors
     }
 
     #[inline]
@@ -262,15 +291,37 @@ impl SimulatorApp {
             .rotation()
             .clone()
     }
+
+    #[inline]
+    fn apply_player_forces(&mut self, robot_handle: &RobotHandler, action: PlayerAction) {
+        // Position :
+        let my_pos = self.position_of(robot_handle);
+        let dx = action.target_position.0 - my_pos.x;
+        let dy = action.target_position.1 - my_pos.y;
+        let angle = dy.atan2(dx);
+        // Bravo, vous avez trouvé la source de la non-linéarité l'accélération, vous pouvez donc la rectifier
+        let difficult_power = ease_in_out_quad(
+            action.power as f32 / 255.0
+        ) * 20.0; // HERE : power speed
+        self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].apply_impulse(vector![difficult_power * angle.cos(), difficult_power * angle.sin()], true);
+
+        // Rotation :
+
+    }
 }
 
-impl SimulatorApp {
+#[inline]
+fn ease_in_out_quad(x: f32) -> f32 {
+    if x < 0.5 { 2.0 * x * x } else { 1.0 - (-2.0 * x + 2.0).powi(2) / 2.0 }
+}
+
+impl Simulator {
     fn process_collision(&mut self, collision_event: CollisionEvent) -> Option<RefereeAction> {
         //On ne considère que les collisions qui commencent _pour l'instant_
         if collision_event.stopped() {
             return None;
         }
-        
+
         let try_robot_for_1 = self
             .collider_to_robot_handle
             .get(&collision_event.collider1());
@@ -357,84 +408,84 @@ impl SimulatorApp {
     }
 
     pub fn new_round(&mut self) {
-        let center: Vector2<f32> = Vector2::new(infos::FIELD_DEPTH/2.0, infos::FIELD_WIDTH/2.0);
-
-        SimulatorApp::reset_rigid_body(
+        Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[0]]],
             f32::consts::FRAC_PI_2,
-            center - Vector2::new(infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y)
+            Vector2::new(-infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y),
         );
 
-        SimulatorApp::reset_rigid_body(
+        Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[1]]],
             f32::consts::FRAC_PI_2,
-            center - Vector2::new(infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y)
+            Vector2::new(-infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y),
         );
 
-        SimulatorApp::reset_rigid_body(
+        Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[2]]],
             3.0 * f32::consts::FRAC_PI_2,
-            center + Vector2::new(infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y)
+            Vector2::new(infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y),
         );
 
-        SimulatorApp::reset_rigid_body(
+        Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[3]]],
             3.0 * f32::consts::FRAC_PI_2,
-            center + Vector2::new(infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y)
+            Vector2::new(infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y),
         );
 
         // ball
-        SimulatorApp::reset_rigid_body(
+        Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.ball_rigid_body_handle],
             0.0,
-            center,
+            vector![0.0, 0.0],
         );
     }
 
     #[inline]
-    fn reset_rigid_body(rigid_body: &mut RigidBody, angle:f32, translation: Vector2<f32>) {
+    fn reset_rigid_body(rigid_body: &mut RigidBody, angle: f32, translation: Vector2<f32>) {
         (*rigid_body).set_linvel(Vector2::new(0.0, 0.0), true);
         (*rigid_body).set_angvel(0.0, true);
         (*rigid_body).set_rotation(nalgebra::UnitComplex::new(angle), true);
         (*rigid_body).set_translation(translation, true);
     }
 
-    // TODO refactor plus joliment
+    
     fn build_field_colliders(&mut self) {
-        let up = ColliderBuilder::cuboid(infos::FIELD_DEPTH, 1.0)
+        let up = ColliderBuilder::cuboid(infos::FIELD_DEPTH / 2.0, 0.5)
+            .translation(vector![0.0, -infos::FIELD_WIDTH / 2.0])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(up);
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::Top);
 
-        let bottom = ColliderBuilder::cuboid(infos::FIELD_DEPTH, 1.0)
-            .translation(vector![0.0, infos::FIELD_WIDTH])
+        let bottom = ColliderBuilder::cuboid(infos::FIELD_DEPTH / 2.0, 0.5)
+            .translation(vector![0.0, infos::FIELD_WIDTH / 2.0])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(bottom);
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::Bottom);
 
-        let left = ColliderBuilder::cuboid(1.0, infos::FIELD_WIDTH)
+        let left = ColliderBuilder::cuboid(0.5, infos::FIELD_WIDTH / 2.0)
+            .translation(vector![-infos::FIELD_DEPTH / 2.0, 0.0])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(left);
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::Left);
 
-        let right = ColliderBuilder::cuboid(1.0, infos::FIELD_WIDTH)
-            .translation(vector![infos::FIELD_DEPTH, 0.0])
+        let right = ColliderBuilder::cuboid(0.5, infos::FIELD_WIDTH / 2.0)
+            .translation(vector![infos::FIELD_DEPTH / 2.0, 0.0])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
         let collider_handle = self.collider_set.insert(right);
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::Right);
 
-        let goal_left_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+        let goal_left_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE / 2.0, 0.5)
             .translation(vector![
-                0.0,
-                (infos::FIELD_WIDTH / 2.0) - (infos::GOAL_WIDTH / 2.0)
+                -infos::FIELD_DEPTH / 2.0 + infos::SPACE_BEFORE_LINE_SIDE / 2.0,
+                -infos::GOAL_WIDTH / 2.0
             ])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
@@ -442,10 +493,10 @@ impl SimulatorApp {
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::GoalLeftUp);
 
-        let goal_left_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+        let goal_left_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE / 2.0, 0.5)
             .translation(vector![
-                0.0,
-                (infos::FIELD_WIDTH / 2.0) + (infos::GOAL_WIDTH / 2.0)
+                -infos::FIELD_DEPTH / 2.0 + infos::SPACE_BEFORE_LINE_SIDE / 2.0,
+                infos::GOAL_WIDTH / 2.0
             ])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
@@ -453,10 +504,10 @@ impl SimulatorApp {
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::GoalLeftDown);
 
-        let goal_right_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+        let goal_right_up = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE / 2.0, 0.5)
             .translation(vector![
-                infos::FIELD_DEPTH,
-                (infos::FIELD_WIDTH / 2.0) - (infos::GOAL_WIDTH / 2.0)
+                infos::FIELD_DEPTH / 2.0 - infos::SPACE_BEFORE_LINE_SIDE / 2.0,
+                -infos::GOAL_WIDTH / 2.0
             ])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
@@ -464,10 +515,10 @@ impl SimulatorApp {
         self.collider_to_field_wall
             .insert(collider_handle, FieldWallKind::GoalRightUp);
 
-        let goal_right_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE, 1.0)
+        let goal_right_down = ColliderBuilder::cuboid(infos::SPACE_BEFORE_LINE_SIDE / 2.0, 0.5)
             .translation(vector![
-                infos::FIELD_DEPTH,
-                (infos::FIELD_WIDTH / 2.0) + (infos::GOAL_WIDTH / 2.0)
+                infos::FIELD_DEPTH / 2.0 - infos::SPACE_BEFORE_LINE_SIDE / 2.0,
+                infos::GOAL_WIDTH / 2.0
             ])
             .restitution(infos::BORDER_RESTITUTION)
             .build();
