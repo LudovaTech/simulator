@@ -327,13 +327,21 @@ impl Simulator {
                 && action.target_orientation <= f32::consts::PI
         );
 
-        let angle_dist = {
-            let classical = robot_angle - action.target_orientation;
-            let throught_zero = robot_angle.abs() + action.target_orientation.abs();
-            classical.min(throught_zero)
-        };
+        // TODO : improve rotation
 
-        let rotation_sign = if angle_dist >= 0.0 { 1.0 } else { -1.0 };
+        let mut angle_dist = (robot_angle - action.target_orientation + f32::consts::PI)
+            .rem_euclid(2.0 * f32::consts::PI)
+            - f32::consts::PI;
+        if angle_dist.abs() > f32::consts::PI - infos::ROTATION_DELTA {
+            angle_dist = 0.0;
+        }
+        let rotation_sign = if angle_dist > infos::ROTATION_DELTA {
+            1.0
+        } else if angle_dist < -infos::ROTATION_DELTA {
+            -1.0
+        } else {
+            0.0
+        };
 
         // We should start to decrease speed when we are close
 
@@ -364,14 +372,16 @@ impl Simulator {
         //     .unwrap();
         // }
 
-        if angle_dist.abs() > infos::ROTATION_DELTA {
+        if rotation_sign == 0.0 {
+            // decrease speed
+            self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].set_angvel(angvel * infos::ROTATION_AUTO_DECREASE_RATIO, false);
+        } else {
             self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].set_angvel(
                 (angvel + rotation_sign * infos::ROTATION_SPEED)
-                    .min(infos::ROTATION_MAX_SPEED),
+                    .clamp(-infos::ROTATION_MAX_SPEED, infos::ROTATION_MAX_SPEED),
                 true,
             );
         }
-
 
         // ROTATION_MAX_SPEED
 
