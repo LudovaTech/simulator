@@ -4,6 +4,7 @@ TEAM_NAME = "vers balle"
 
 # data contient :
 # my_position: (float, float)
+# my_orientation: float, degrés entre -180 exclus et 180 inclus
 # friend_position: (float, float)
 # enemy1_position: (float, float)
 # enemy2_position: (float, float)
