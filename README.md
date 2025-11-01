@@ -10,6 +10,7 @@ Les robots peuvent être programmés en Python par les joueurs.
 ### Windows + Python
 - Téléchargez la version la plus récente du programme depuis : https://github.com/LudovaTech/simulator/releases  
 - Installez Python 3.13 : https://www.python.org/downloads/release/python-3130/
+- Dans cette version de python, installez `rerun-sdk` (_pas_ `rerun`).
 
 ### Linux + Python
 Si votre distribution est suffisamment récente (glibc >= 2.40), la build Linux (x86) disponible sur https://github.com/LudovaTech/simulator/releases devrait fonctionner.  
