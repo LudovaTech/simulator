@@ -12,6 +12,6 @@ def update(data):
     return {
         "target_position": data["ball_position"],
         "power": randint(150, 255), # pour que les robots ne soient pas bloqués au centre
-        "target_orientation": 90,
+        "target_orientation": 20,
         "kick": True,
     }

@@ -8,6 +8,7 @@ use core::f32;
 use crossbeam::channel::Receiver;
 use nalgebra::{ComplexField, Vector2};
 use rapier2d::prelude::*;
+use rerun::{RecordingStreamBuilder, TextLog};
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
@@ -308,8 +309,7 @@ impl Simulator {
         let my_pos = self.position_of(robot_handle);
         let robot_angle = self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]]
             .rotation()
-            .angle()
-            - f32::consts::FRAC_PI_2;
+            .angle();
         let dx = action.target_position.0 - my_pos.x;
         let dy = action.target_position.1 - my_pos.y;
         let angle = dy.atan2(dx);
@@ -320,11 +320,51 @@ impl Simulator {
             true,
         );
 
+        assert!(-f32::consts::PI <= robot_angle && robot_angle <= f32::consts::PI);
+        assert!(-f32::consts::PI <= action.target_orientation && action.target_orientation <= f32::consts::PI);
+
+        let angle_dist = {
+            let classical = robot_angle - action.target_orientation;
+            let throught_zero = robot_angle.abs() + action.target_orientation.abs();
+            classical.min(throught_zero)
+        };
+
+        let rotation_sign = if angle_dist >= 0.0 {1.0} else {-1.0};
+
         // Rotation :
-        // println!("{} rotation {}, target {}", robot_handle, robot_angle, action.target_orientation);
-        let rotation_sign = if action.target_orientation - robot_angle >= 0.0 {1.0} else {-1.0};
+        if robot_handle.team_name().ends_with("1") && robot_handle.robot_number() == 1 {
+            let rec = RecordingStreamBuilder::new("simulator")
+                .recording_id("simulator")
+                .spawn()
+                .unwrap();
+            rec.log(
+                "/log",
+                &TextLog::new(format!(
+                    "{} rotation {}, target {}, so {}",
+                    robot_handle, robot_angle, action.target_orientation, rotation_sign
+                )),
+            )
+            .unwrap();
+        }
         self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]]
-            .apply_torque_impulse(rotation_sign * infos::ROTATION_SPEED, true);
+            .apply_torque_impulse(rotation_sign * infos::ROTATION_SPEED * 100.0, true);
+
+
+        // limit global angular velocity
+        let curent_angvel =
+            self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].angvel();
+        dbg!(curent_angvel);
+        if curent_angvel.abs() > infos::ROTATION_MAX_SPEED {
+            self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].set_angvel(
+                infos::ROTATION_MAX_SPEED
+                    * if curent_angvel.is_sign_positive() {
+                        1.0
+                    } else {
+                        -1.0
+                    },
+                true,
+            );
+        }
 
         // ROTATION_MAX_SPEED
 
@@ -381,7 +421,7 @@ impl Simulator {
         // Cas entre deux robots
         if let Some(robot1) = try_robot_for_1 {
             if let Some(robot2) = try_robot_for_2 {
-                println!("{} touched {}", robot1, robot2);
+                // println!("{} touched {}", robot1, robot2);
                 return None;
             }
         }
@@ -396,13 +436,13 @@ impl Simulator {
         // Cas entre un robot et un mur
         if let Some(robot1) = try_robot_for_1 {
             if let Some(wall2) = try_wall_for_2 {
-                println!("{} touched {:?}", robot1, wall2);
+                // println!("{} touched {:?}", robot1, wall2);
                 return None;
             }
         }
         if let Some(robot2) = try_robot_for_2 {
             if let Some(wall1) = try_wall_for_1 {
-                println!("{} touched {:?}", robot2, wall1);
+                // println!("{} touched {:?}", robot2, wall1);
                 return None;
             }
         }
@@ -413,11 +453,11 @@ impl Simulator {
         // Cas ball/robot et ball/mur
         if try_ball_for_1 {
             if let Some(robot2) = try_robot_for_2 {
-                println!("ball touched {}", robot2);
+                // println!("ball touched {}", robot2);
                 return None;
             }
             if let Some(wall2) = try_wall_for_2 {
-                println!("ball touched {:?}", wall2);
+                // println!("ball touched {:?}", wall2);
                 if *wall2 == FieldWallKind::Left || *wall2 == FieldWallKind::Right {
                     return Some(
                         self.game_referee
@@ -429,11 +469,11 @@ impl Simulator {
         }
         if try_ball_for_2 {
             if let Some(robot1) = try_robot_for_1 {
-                println!("ball touched {}", robot1);
+                // println!("ball touched {}", robot1);
                 return None;
             }
             if let Some(wall1) = try_wall_for_1 {
-                println!("ball touched {:?}", wall1);
+                // println!("ball touched {:?}", wall1);
                 if *wall1 == FieldWallKind::Left || *wall1 == FieldWallKind::Right {
                     return Some(
                         self.game_referee
@@ -444,11 +484,11 @@ impl Simulator {
             }
         }
 
-        println!(
-            "Unknown collision : {:?} with {:?}",
-            collision_event.collider1(),
-            collision_event.collider2()
-        );
+        // println!(
+        //     "Unknown collision : {:?} with {:?}",
+        //     collision_event.collider1(),
+        //     collision_event.collider2()
+        // );
         dbg!(try_robot_for_1);
         dbg!(try_robot_for_2);
         dbg!(try_wall_for_1);
