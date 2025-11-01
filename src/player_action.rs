@@ -396,6 +396,20 @@ impl PlayerCodePython {
             } else {
                 player_info
             };
+            let my_orientation_for_player_code = {
+                let y = (player_info.my_orientation + f32::consts::FRAC_PI_2)
+                    .rem_euclid(2.0 * f32::consts::PI)
+                    - f32::consts::PI;
+                if y == -f32::consts::PI {
+                    f32::consts::PI
+                } else {
+                    y
+                }
+            };
+            let player_info = PlayerInformation {
+                my_orientation: my_orientation_for_player_code,
+                ..player_info
+            };
             let data = PyDict::new(py);
             data.set_item("my_position", player_info.my_position)
                 .unwrap();
@@ -466,6 +480,10 @@ impl PlayerCodePython {
                 target_position = switch_coordinates(target_position);
                 target_orientation = switch_rotation(target_orientation);
             }
+
+            // the rerun orientation is different from the code orientation
+            target_orientation =
+                (target_orientation + f32::consts::FRAC_PI_2).rem_euclid(2.0 * f32::consts::PI);
 
             Ok(PlayerAction {
                 target_position,
