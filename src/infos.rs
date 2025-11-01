@@ -33,5 +33,6 @@ pub const NB_MIN_TICK_BETWEEN_KICKS: u64 = 500;
 pub const POWER_SPEED: f32 = 20.0;
 pub const DISTANCE_MIN_KICKER_BALL: f32 = 5.0; // depuis le bord du robot
 pub const KICK_POWER: f32 = 75.0;
-pub const ROTATION_SPEED: f32 = 10.0;
+pub const ROTATION_SPEED: f32 = 1.0;
 pub const ROTATION_MAX_SPEED: f32 = 5.0;
+pub const ROTATION_DELTA: f32 = 10.0_f32.to_radians();

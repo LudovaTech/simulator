@@ -310,6 +310,7 @@ impl Simulator {
         let robot_angle = self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]]
             .rotation()
             .angle();
+        let angvel = self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].angvel();
         let dx = action.target_position.0 - my_pos.x;
         let dy = action.target_position.1 - my_pos.y;
         let angle = dy.atan2(dx);
@@ -320,8 +321,11 @@ impl Simulator {
             true,
         );
 
-        assert!(-f32::consts::PI <= robot_angle && robot_angle <= f32::consts::PI);
-        assert!(-f32::consts::PI <= action.target_orientation && action.target_orientation <= f32::consts::PI);
+        debug_assert!(-f32::consts::PI <= robot_angle && robot_angle <= f32::consts::PI);
+        debug_assert!(
+            -f32::consts::PI <= action.target_orientation
+                && action.target_orientation <= f32::consts::PI
+        );
 
         let angle_dist = {
             let classical = robot_angle - action.target_orientation;
@@ -329,42 +333,45 @@ impl Simulator {
             classical.min(throught_zero)
         };
 
-        let rotation_sign = if angle_dist >= 0.0 {1.0} else {-1.0};
+        let rotation_sign = if angle_dist >= 0.0 { 1.0 } else { -1.0 };
+
+        // We should start to decrease speed when we are close
 
         // Rotation :
-        if robot_handle.team_name().ends_with("1") && robot_handle.robot_number() == 1 {
-            let rec = RecordingStreamBuilder::new("simulator")
-                .recording_id("simulator")
-                .spawn()
-                .unwrap();
-            rec.log(
-                "/log",
-                &TextLog::new(format!(
-                    "{} rotation {}, target {}, so {}",
-                    robot_handle, robot_angle, action.target_orientation, rotation_sign
-                )),
-            )
-            .unwrap();
-        }
-        self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]]
-            .apply_torque_impulse(rotation_sign * infos::ROTATION_SPEED * 100.0, true);
 
+        // // Equation du carré de la vitesse
+        // let speed_at_target =
+        //     angvel.powi(2) + 2.0 * (-1.0) * rotation_sign * infos::ROTATION_SPEED * angle_dist;
+        // let correction_sign = if speed_at_target >= 0.0 { -1.0 } else { 1.0 };
 
-        // limit global angular velocity
-        let curent_angvel =
-            self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].angvel();
-        dbg!(curent_angvel);
-        if curent_angvel.abs() > infos::ROTATION_MAX_SPEED {
+        // if robot_handle.team_name().ends_with("1") && robot_handle.robot_number() == 1 {
+        //     let rec = RecordingStreamBuilder::new("simulator")
+        //         .recording_id("simulator")
+        //         .spawn()
+        //         .unwrap();
+        //     rec.log(
+        //         "/log",
+        //         &TextLog::new(format!(
+        //             "{} rotation {}, target {}, so {}, speed_at_taeget {}, so {}",
+        //             robot_handle,
+        //             robot_angle,
+        //             action.target_orientation,
+        //             rotation_sign,
+        //             speed_at_target,
+        //             correction_sign
+        //         )),
+        //     )
+        //     .unwrap();
+        // }
+
+        if angle_dist.abs() > infos::ROTATION_DELTA {
             self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].set_angvel(
-                infos::ROTATION_MAX_SPEED
-                    * if curent_angvel.is_sign_positive() {
-                        1.0
-                    } else {
-                        -1.0
-                    },
+                (angvel + rotation_sign * infos::ROTATION_SPEED)
+                    .min(infos::ROTATION_MAX_SPEED),
                 true,
             );
         }
+
 
         // ROTATION_MAX_SPEED
 
