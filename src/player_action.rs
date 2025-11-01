@@ -336,7 +336,8 @@ pub struct PlayerInformation {
 pub struct PlayerAction {
     pub target_position: (f32, f32),
     pub power: u8,
-    pub target_orientation: f32,
+    pub target_orientation: f32, // en radians !
+    pub kick: bool,
 }
 
 impl PlayerCodePython {
@@ -409,7 +410,7 @@ impl PlayerCodePython {
                         err: format!("{}", err),
                         value_returned: format!("{}", action),
                     })?;
-            if dict.len() != 3 {
+            if dict.len() != 4 {
                 println!(
                     "WARN: Le dictionnaire de retour n'a pas le nombre exact d'arguments requis"
                 );
@@ -439,11 +440,15 @@ impl PlayerCodePython {
                     value_returned: format!("{}", action),
                 });
             }
+            let target_orientation = target_orientation.to_radians();
+
+            let kick: bool = self.dict_extract(&action, dict, "kick", "un booléen True/False")?;
 
             Ok(PlayerAction {
                 target_position,
                 power,
                 target_orientation,
+                kick,
             })
         })
     }

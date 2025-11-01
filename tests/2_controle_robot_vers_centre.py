@@ -5,5 +5,6 @@ def update(data):
     return {
         "target_position": (0, 0), # position en coordonnées globales (par rapport au centre du terrain) de où on veut aller
         "power": 255, # puissance donnée aux moteurs
-        "target_orientation": 90 # orientation à laquelle on souhaite aller (non implémentée)
+        "target_orientation": 90, # orientation à laquelle on souhaite aller (non implémentée)
+        "kick": False, # shoot dans la balle
     }

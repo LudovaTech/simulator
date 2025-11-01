@@ -6,9 +6,9 @@ use crate::{
 };
 use core::f32;
 use crossbeam::channel::Receiver;
-use nalgebra::Vector2;
+use nalgebra::{ComplexField, Vector2};
 use rapier2d::prelude::*;
-use std::{collections::HashMap, f32::consts::PI};
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
 pub enum FieldWallKind {
@@ -41,8 +41,10 @@ pub struct Simulator {
     pub collision_recv: Receiver<CollisionEvent>,
     pub contact_force_recv: Receiver<ContactForceEvent>,
     // Simulator :
+    pub tick_nb: u64,
     pub game_referee: GameReferee,
     pub player_code: HashMap<String, PlayerCode>,
+    pub last_kick_time: HashMap<RobotHandler, u64>,
     pub ball_rigid_body_handle: RigidBodyHandle,
     pub ball_collider_handle: ColliderHandle,
     pub robots: [RobotHandler; 4],
@@ -104,7 +106,10 @@ pub struct Simulator {
 // }
 
 impl Simulator {
-    pub fn new(robots_builders: [RobotBuilder; 4], player_code: HashMap<String, PlayerCode>) -> Simulator {
+    pub fn new(
+        robots_builders: [RobotBuilder; 4],
+        player_code: HashMap<String, PlayerCode>,
+    ) -> Simulator {
         let robot_handlers: [RobotHandler; 4] = [
             robots_builders[0].to_robot_handle(),
             robots_builders[1].to_robot_handle(),
@@ -132,8 +137,10 @@ impl Simulator {
             collision_recv,
             contact_force_recv,
             // Simulator :
+            tick_nb: 0,
             game_referee: GameReferee::default(),
             player_code,
+            last_kick_time: HashMap::from_iter(robot_handlers.iter().map(|r| (r.clone(), 0u64))),
             ball_rigid_body_handle: RigidBodyHandle::invalid(),
             ball_collider_handle: ColliderHandle::invalid(),
             robots: robot_handlers,
@@ -213,6 +220,7 @@ impl Simulator {
 
 impl Simulator {
     pub fn tick(&mut self) -> HashMap<RobotHandler, CodeReturnValueError> {
+        self.tick_nb += 1;
         // call player code
         let mut errors: HashMap<RobotHandler, CodeReturnValueError> = HashMap::new();
         for robot_handle in self.robots.clone().iter() {
@@ -227,15 +235,17 @@ impl Simulator {
                 ball_position: (ball_pos.x, ball_pos.y),
             });
             match action {
-                Err(err) => {errors.insert(robot_handle.clone(), err);},
+                Err(err) => {
+                    errors.insert(robot_handle.clone(), err);
+                }
                 Ok(action) => {
                     // do things
-                    
+
                     self.apply_player_forces(&robot_handle, action);
                 }
             }
         }
-        
+
         // physic step
         self.physics_pipeline.step(
             &self.gravity,
@@ -296,23 +306,62 @@ impl Simulator {
     fn apply_player_forces(&mut self, robot_handle: &RobotHandler, action: PlayerAction) {
         // Position :
         let my_pos = self.position_of(robot_handle);
+        let robot_angle = self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]]
+            .rotation()
+            .angle()
+            - f32::consts::FRAC_PI_2;
         let dx = action.target_position.0 - my_pos.x;
         let dy = action.target_position.1 - my_pos.y;
         let angle = dy.atan2(dx);
         // Bravo, vous avez trouvé la source de la non-linéarité l'accélération, vous pouvez donc la rectifier
-        let difficult_power = ease_in_out_quad(
-            action.power as f32 / 255.0
-        ) * 20.0; // HERE : power speed
-        self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].apply_impulse(vector![difficult_power * angle.cos(), difficult_power * angle.sin()], true);
+        let difficult_power = ease_in_out_quad(action.power as f32 / 255.0) * infos::POWER_SPEED;
+        self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].apply_impulse(
+            vector![difficult_power * angle.cos(), difficult_power * angle.sin()],
+            true,
+        );
 
         // Rotation :
+        // println!("{} rotation {}, target {}", robot_handle, robot_angle, action.target_orientation);
+        let rotation_sign = if action.target_orientation - robot_angle >= 0.0 {1.0} else {-1.0};
+        self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]]
+            .apply_torque_impulse(rotation_sign * infos::ROTATION_SPEED, true);
 
+        // ROTATION_MAX_SPEED
+
+        // Kicker :
+        let last_kick = self.last_kick_time[robot_handle];
+        // if last_kick is 0 then it means that the robot never kicked
+        if true || last_kick == 0 || self.tick_nb >= last_kick + infos::NB_MIN_TICK_BETWEEN_KICKS {
+            // do a kick
+
+            // the energy is consumed even if the kick is not applied
+            self.last_kick_time
+                .entry(robot_handle.clone())
+                .and_modify(|e| *e = self.tick_nb);
+            let robot_angle_unit_vector = Vector2::new(robot_angle.cos(), robot_angle.sin());
+            let kicker_position = my_pos + infos::ROBOT_RADIUS * robot_angle_unit_vector;
+            if kicker_position
+                .metric_distance(&self.position_of_ball())
+                .abs()
+                <= infos::DISTANCE_MIN_KICKER_BALL
+            {
+                self.rigid_body_set[self.ball_rigid_body_handle].apply_impulse_at_point(
+                    infos::KICK_POWER * robot_angle_unit_vector,
+                    kicker_position.into(),
+                    true,
+                );
+            }
+        }
     }
 }
 
 #[inline]
 fn ease_in_out_quad(x: f32) -> f32 {
-    if x < 0.5 { 2.0 * x * x } else { 1.0 - (-2.0 * x + 2.0).powi(2) / 2.0 }
+    if x < 0.5 {
+        2.0 * x * x
+    } else {
+        1.0 - (-2.0 * x + 2.0).powi(2) / 2.0
+    }
 }
 
 impl Simulator {
@@ -448,7 +497,6 @@ impl Simulator {
         (*rigid_body).set_translation(translation, true);
     }
 
-    
     fn build_field_colliders(&mut self) {
         let up = ColliderBuilder::cuboid(infos::FIELD_DEPTH / 2.0, 0.5)
             .translation(vector![0.0, -infos::FIELD_WIDTH / 2.0])

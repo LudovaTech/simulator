@@ -191,6 +191,16 @@ impl AppRunning {
                             [self.simulation.robot_to_rigid_body_handle[&first_robot]]
                             .apply_impulse(vector![0.0, 100.0], true);
                     }
+                    if ui.button("Turn Robot A1 Left").clicked() {
+                        self.simulation.rigid_body_set
+                            [self.simulation.robot_to_rigid_body_handle[&first_robot]]
+                            .apply_torque_impulse(-100.0, true);
+                    }
+                    if ui.button("Turn Robot A1 Right").clicked() {
+                        self.simulation.rigid_body_set
+                            [self.simulation.robot_to_rigid_body_handle[&first_robot]]
+                            .apply_torque_impulse(100.0, true);
+                    }
                 });
                 ui.separator();
                 // if let Some(entity_database) = self.rerun_app.recording_db() {

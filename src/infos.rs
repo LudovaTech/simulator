@@ -27,3 +27,11 @@ pub const BALL_LINEAR_DAMPING: f32 = 0.5; // Friction qui s'applique tout le tem
 pub const BALL_ANGULAR_DAMPING: f32 = 0.5; // De même mais pour la rotation
 pub const BALL_RESTITUTION: f32 = 0.1; // Elasticité, restitution de la force de collision
 pub const BALL_MASS: f32 = 10.0;
+
+/// Constantes de jeu
+pub const NB_MIN_TICK_BETWEEN_KICKS: u64 = 500;
+pub const POWER_SPEED: f32 = 20.0;
+pub const DISTANCE_MIN_KICKER_BALL: f32 = 5.0; // depuis le bord du robot
+pub const KICK_POWER: f32 = 75.0;
+pub const ROTATION_SPEED: f32 = 5.0;
+pub const ROTATION_MAX_SPEED: f32 = 20.0;

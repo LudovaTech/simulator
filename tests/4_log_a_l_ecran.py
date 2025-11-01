@@ -15,5 +15,6 @@ def update(data):
     return {
         "target_position": data["ball_position"],
         "power": randint(150, 255),
-        "target_orientation": 90
+        "target_orientation": 90,
+        "kick": False,
     }
