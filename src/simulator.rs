@@ -107,6 +107,7 @@ pub struct Simulator {
 // }
 
 impl Simulator {
+    /// CRUCIAL : robots from the same team _must_ be at (0 and 1) or (2 and 3)
     pub fn new(
         robots_builders: [RobotBuilder; 4],
         player_code: HashMap<String, PlayerCode>,
@@ -224,12 +225,15 @@ impl Simulator {
         self.tick_nb += 1;
         // call player code
         let mut errors: HashMap<RobotHandler, CodeReturnValueError> = HashMap::new();
-        for robot_handle in self.robots.clone().iter() {
+        for (n, robot_handle) in self.robots.clone().iter().enumerate() {
             let code = &self.player_code[robot_handle.team_name()];
             let my_pos = self.position_of(robot_handle);
+            let my_orientation = self.rotation_of(robot_handle).angle();
             let ball_pos = self.position_of_ball();
             let action = code.tick(PlayerInformation {
+                switch_coordinates: n >= 2,
                 my_position: (my_pos.x, my_pos.y),
+                my_orientation,
                 friend_position: (10.0, 10.0),
                 enemy1_position: (10.0, 10.0),
                 enemy2_position: (10.0, 10.0),
@@ -329,15 +333,13 @@ impl Simulator {
 
         // TODO : improve rotation
 
-        let mut angle_dist = ((robot_angle - action.target_orientation + f32::consts::PI) % (2.0 * f32::consts::PI))
+        let angle_dist = ((robot_angle - action.target_orientation + f32::consts::PI).rem_euclid(2.0 * f32::consts::PI))
             - f32::consts::PI;
         dbg!(angle_dist);
-        // if angle_dist.abs() > f32::consts::PI - infos::ROTATION_DELTA {
-        //     angle_dist = 0.0;
-        // }
-        let rotation_sign = if angle_dist > infos::ROTATION_DELTA {
+
+        let rotation_sign = if angle_dist > 0.0 {
             1.0
-        } else if angle_dist < -infos::ROTATION_DELTA {
+        } else if angle_dist < 0.0 {
             -1.0
         } else {
             0.0
@@ -516,26 +518,26 @@ impl Simulator {
     pub fn new_round(&mut self) {
         Simulator::reset_rigid_body(
             &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[0]]],
-            f32::consts::FRAC_PI_2,
-            Vector2::new(-infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y),
-        );
-
-        Simulator::reset_rigid_body(
-            &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[1]]],
-            f32::consts::FRAC_PI_2,
-            Vector2::new(-infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y),
-        );
-
-        Simulator::reset_rigid_body(
-            &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[2]]],
             3.0 * f32::consts::FRAC_PI_2,
             Vector2::new(infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y),
         );
 
         Simulator::reset_rigid_body(
-            &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[3]]],
+            &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[1]]],
             3.0 * f32::consts::FRAC_PI_2,
             Vector2::new(infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y),
+        );
+
+        Simulator::reset_rigid_body(
+            &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[2]]],
+            f32::consts::FRAC_PI_2,
+            Vector2::new(-infos::START_POS_ALIGNED_X, -infos::START_POS_ALIGNED_Y),
+        );
+
+        Simulator::reset_rigid_body(
+            &mut self.rigid_body_set[self.robot_to_rigid_body_handle[&self.robots[3]]],
+            f32::consts::FRAC_PI_2,
+            Vector2::new(-infos::START_POS_ALIGNED_X, infos::START_POS_ALIGNED_Y),
         );
 
         // ball

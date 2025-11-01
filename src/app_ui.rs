@@ -363,6 +363,7 @@ impl AppConfiguration {
         teams.insert(name1.clone(), team1);
         teams.insert(name2.clone(), team2);
 
+        // CRUCIAL : robots from the same team _must_ be at (0 and 1) or (2 and 3)
         let simulation = Simulator::new(
             [
                 RobotBuilder::from_basic_robot(&name1, 1),

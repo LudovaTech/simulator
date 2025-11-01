@@ -1,3 +1,4 @@
+use core::f32;
 use std::{
     ffi::CStr,
     fmt::{Debug, Display},
@@ -325,7 +326,9 @@ impl std::error::Error for CodeReturnValueError {}
 
 #[derive(Debug)]
 pub struct PlayerInformation {
+    pub switch_coordinates: bool,
     pub my_position: (f32, f32),
+    pub my_orientation: f32, // en radians !, in ]-pi; pi]
     pub friend_position: (f32, f32),
     pub enemy1_position: (f32, f32),
     pub enemy2_position: (f32, f32),
@@ -380,9 +383,23 @@ impl PlayerCodePython {
         player_info: PlayerInformation,
     ) -> Result<PlayerAction, CodeReturnValueError> {
         Python::attach(|py| -> Result<PlayerAction, CodeReturnValueError> {
-            // TODO check update existence
+            let player_info = if player_info.switch_coordinates {
+                PlayerInformation {
+                    switch_coordinates: player_info.switch_coordinates,
+                    my_position: switch_coordinates(player_info.my_position),
+                    my_orientation: switch_rotation(player_info.my_orientation),
+                    friend_position: switch_coordinates(player_info.friend_position),
+                    enemy1_position: switch_coordinates(player_info.enemy1_position),
+                    enemy2_position: switch_coordinates(player_info.enemy2_position),
+                    ball_position: switch_coordinates(player_info.ball_position),
+                }
+            } else {
+                player_info
+            };
             let data = PyDict::new(py);
             data.set_item("my_position", player_info.my_position)
+                .unwrap();
+            data.set_item("my_orientation", player_info.my_orientation.to_degrees())
                 .unwrap();
             data.set_item("friend_position", player_info.friend_position)
                 .unwrap();
@@ -416,7 +433,7 @@ impl PlayerCodePython {
                 );
             }
 
-            let target_position: (f32, f32) = self.dict_extract(
+            let mut target_position: (f32, f32) = self.dict_extract(
                 &action,
                 dict,
                 "target_position",
@@ -440,9 +457,15 @@ impl PlayerCodePython {
                     value_returned: format!("{}", action),
                 });
             }
-            let target_orientation = target_orientation.to_radians();
+            let mut target_orientation = target_orientation.to_radians();
 
             let kick: bool = self.dict_extract(&action, dict, "kick", "un booléen True/False")?;
+
+            // transform back player coordinates to global coordinates
+            if player_info.switch_coordinates {
+                target_position = switch_coordinates(target_position);
+                target_orientation = switch_rotation(target_orientation);
+            }
 
             Ok(PlayerAction {
                 target_position,
@@ -452,4 +475,14 @@ impl PlayerCodePython {
             })
         })
     }
+}
+
+#[inline]
+fn switch_coordinates(c: (f32, f32)) -> (f32, f32) {
+    (-c.0, -c.1)
+}
+
+#[inline]
+fn switch_rotation(r: f32) -> f32 {
+    (r + f32::consts::PI) % (2.0 * f32::consts::PI)
 }

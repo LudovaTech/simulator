@@ -3,8 +3,8 @@ TEAM_NAME = "vers centre"
 def update(data):
     # Obligatoire de retourner un dictionnaire avec ces valeurs pour réaliser une action
     return {
-        "target_position": (0, 0), # position en coordonnées globales (par rapport au centre du terrain) de où on veut aller
+        "target_position": (50, 50), # position en coordonnées globales (par rapport au centre du terrain) de où on veut aller
         "power": 255, # puissance donnée aux moteurs
-        "target_orientation": 45, # orientation à laquelle on souhaite aller (non implémentée)
+        "target_orientation": 50, # orientation à laquelle on souhaite aller (non implémentée)
         "kick": False, # shoot dans la balle
     }
