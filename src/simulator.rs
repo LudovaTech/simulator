@@ -329,12 +329,12 @@ impl Simulator {
 
         // TODO : improve rotation
 
-        let mut angle_dist = (robot_angle - action.target_orientation + f32::consts::PI)
-            .rem_euclid(2.0 * f32::consts::PI)
+        let mut angle_dist = ((robot_angle - action.target_orientation + f32::consts::PI) % (2.0 * f32::consts::PI))
             - f32::consts::PI;
-        if angle_dist.abs() > f32::consts::PI - infos::ROTATION_DELTA {
-            angle_dist = 0.0;
-        }
+        dbg!(angle_dist);
+        // if angle_dist.abs() > f32::consts::PI - infos::ROTATION_DELTA {
+        //     angle_dist = 0.0;
+        // }
         let rotation_sign = if angle_dist > infos::ROTATION_DELTA {
             1.0
         } else if angle_dist < -infos::ROTATION_DELTA {
@@ -342,7 +342,7 @@ impl Simulator {
         } else {
             0.0
         };
-
+        dbg!(rotation_sign);
         // We should start to decrease speed when we are close
 
         // Rotation :
