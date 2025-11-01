@@ -229,14 +229,41 @@ impl Simulator {
             let code = &self.player_code[robot_handle.team_name()];
             let my_pos = self.position_of(robot_handle);
             let my_orientation = self.rotation_of(robot_handle).angle();
+            let friend_pos = self.position_of(
+                &self.robots[match n {
+                    0 => 1,
+                    1 => 0,
+                    2 => 3,
+                    3 => 2,
+                    _ => panic!(),
+                }],
+            );
+            let enemy1_pos = self.position_of(
+                &self.robots[match n {
+                    0 => 2,
+                    1 => 3,
+                    2 => 0,
+                    3 => 1,
+                    _ => panic!(),
+                }],
+            );
+            let enemy2_pos = self.position_of(
+                &self.robots[match n {
+                    0 => 3,
+                    1 => 2,
+                    2 => 1,
+                    3 => 0,
+                    _ => panic!(),
+                }],
+            );
             let ball_pos = self.position_of_ball();
             let action = code.tick(PlayerInformation {
                 switch_coordinates: n >= 2,
                 my_position: (my_pos.x, my_pos.y),
                 my_orientation,
-                friend_position: (10.0, 10.0),
-                enemy1_position: (10.0, 10.0),
-                enemy2_position: (10.0, 10.0),
+                friend_position: (friend_pos.x, friend_pos.y),
+                enemy1_position: (enemy1_pos.x, enemy1_pos.y),
+                enemy2_position: (enemy2_pos.x, enemy2_pos.y),
                 ball_position: (ball_pos.x, ball_pos.y),
             });
             match action {
@@ -333,7 +360,8 @@ impl Simulator {
 
         // TODO : improve rotation
 
-        let angle_dist = ((robot_angle - action.target_orientation + f32::consts::PI).rem_euclid(2.0 * f32::consts::PI))
+        let angle_dist = ((robot_angle - action.target_orientation + f32::consts::PI)
+            .rem_euclid(2.0 * f32::consts::PI))
             - f32::consts::PI;
         dbg!(angle_dist);
 
@@ -376,7 +404,8 @@ impl Simulator {
 
         if rotation_sign == 0.0 {
             // decrease speed
-            self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].set_angvel(angvel * infos::ROTATION_AUTO_DECREASE_RATIO, false);
+            self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]]
+                .set_angvel(angvel * infos::ROTATION_AUTO_DECREASE_RATIO, false);
         } else {
             self.rigid_body_set[self.robot_to_rigid_body_handle[robot_handle]].set_angvel(
                 (angvel + rotation_sign * infos::ROTATION_SPEED)
@@ -390,9 +419,8 @@ impl Simulator {
         // Kicker :
         let last_kick = self.last_kick_time[robot_handle];
         // if last_kick is 0 then it means that the robot never kicked
-        if true || last_kick == 0 || self.tick_nb >= last_kick + infos::NB_MIN_TICK_BETWEEN_KICKS {
+        if last_kick == 0 || self.tick_nb >= last_kick + infos::NB_MIN_TICK_BETWEEN_KICKS {
             // do a kick
-
             // the energy is consumed even if the kick is not applied
             self.last_kick_time
                 .entry(robot_handle.clone())
